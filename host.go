@@ -21,6 +21,7 @@ import (
 	"github.com/zededa/ghw/pkg/net"
 	"github.com/zededa/ghw/pkg/pci"
 	"github.com/zededa/ghw/pkg/product"
+	"github.com/zededa/ghw/pkg/serial"
 	"github.com/zededa/ghw/pkg/topology"
 	"github.com/zededa/ghw/pkg/usb"
 )
@@ -41,6 +42,7 @@ type HostInfo struct {
 	Product     *product.Info     `json:"product"`
 	PCI         *pci.Info         `json:"pci"`
 	USB         *usb.Info         `json:"usb"`
+	Serial      *serial.Info      `json:"serial"`
 }
 
 // Host returns a pointer to a HostInfo struct that contains fields with
@@ -98,6 +100,10 @@ func Host(opts ...Option) (*HostInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	serialInfo, err := serial.New(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	return &HostInfo{
 		CPU:         cpuInfo,
@@ -113,6 +119,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 		Product:     productInfo,
 		PCI:         pciInfo,
 		USB:         usbInfo,
+		Serial:      serialInfo,
 	}, nil
 }
 
@@ -120,7 +127,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 // structs' String-ified output
 func (info *HostInfo) String() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
 		info.Block.String(),
 		info.CPU.String(),
 		info.GPU.String(),
@@ -134,6 +141,7 @@ func (info *HostInfo) String() string {
 		info.Product.String(),
 		info.PCI.String(),
 		info.USB.String(),
+		info.Serial.String(),
 	)
 }
 
