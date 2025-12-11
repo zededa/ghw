@@ -21,6 +21,7 @@ import (
 	"github.com/jaypipes/ghw/pkg/pci"
 	pciaddress "github.com/jaypipes/ghw/pkg/pci/address"
 	"github.com/jaypipes/ghw/pkg/product"
+	"github.com/jaypipes/ghw/pkg/serial"
 	"github.com/jaypipes/ghw/pkg/topology"
 	"github.com/jaypipes/ghw/pkg/tpm"
 	"github.com/jaypipes/ghw/pkg/usb"
@@ -215,4 +216,11 @@ type TPMDevice = tpm.Device
 
 var (
 	TPM = tpm.New
+)
+
+type SerialInfo = serial.Info
+type SerialDevice = serial.Device
+
+var (
+	Serial = serial.New
 )
