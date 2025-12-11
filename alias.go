@@ -195,3 +195,10 @@ type AcceleratorDevice = accelerator.AcceleratorDevice
 var (
 	Accelerator = accelerator.New
 )
+
+type SerialInfo = serial.Info
+type SerialDevice = serial.Device
+
+var (
+	Serial = serial.New
+)

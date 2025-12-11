@@ -71,6 +71,7 @@ type Paths struct {
 	SysClassDRM            string
 	SysClassDMI            string
 	SysClassNet            string
+	SysClassTty            string
 	RunUdevData            string
 }
 
@@ -94,6 +95,7 @@ func New(opts *option.Options) *Paths {
 		SysClassDRM:            filepath.Join(opts.Chroot, roots.Sys, "class", "drm"),
 		SysClassDMI:            filepath.Join(opts.Chroot, roots.Sys, "class", "dmi"),
 		SysClassNet:            filepath.Join(opts.Chroot, roots.Sys, "class", "net"),
+		SysClassTty:            filepath.Join(opts.Chroot, roots.Sys, "class", "tty"),
 		RunUdevData:            filepath.Join(opts.Chroot, roots.Run, "udev", "data"),
 	}
 }
