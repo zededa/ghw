@@ -20,6 +20,7 @@ import (
 	"github.com/jaypipes/ghw/pkg/pci"
 	pciaddress "github.com/jaypipes/ghw/pkg/pci/address"
 	"github.com/jaypipes/ghw/pkg/product"
+	"github.com/jaypipes/ghw/pkg/serial"
 	"github.com/jaypipes/ghw/pkg/topology"
 	"github.com/jaypipes/ghw/pkg/usb"
 )
@@ -194,4 +195,11 @@ type AcceleratorDevice = accelerator.AcceleratorDevice
 
 var (
 	Accelerator = accelerator.New
+)
+
+type SerialInfo = serial.Info
+type SerialDevice = serial.Device
+
+var (
+	Serial = serial.New
 )
