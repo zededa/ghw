@@ -13,14 +13,38 @@ import (
 	"github.com/jaypipes/ghw/pkg/option"
 )
 
+type PCIAddress struct {
+	Domain   string `json:"domain"`
+	Bus      string `json:"bus"`
+	Device   string `json:"device"`
+	Function string `json:"function"`
+}
+
+type USBAddress struct {
+	Bus    string `json:"bus"`
+	Devnum string `json:"devnum"`
+}
+
+type BusParent struct {
+	PCI *PCIAddress `json:"pci,omitempty"`
+	USB *USBAddress `json:"usb,omitempty"`
+}
+
 type Device struct {
-	Driver     string `json:"driver"`
-	Type       string `json:"type"`
-	VendorID   string `json:"vendor_id"`
-	ProductID  string `json:"product_id"`
-	Product    string `json:"product"`
-	RevisionID string `json:"revision_id"`
-	Interface  string `json:"interface"`
+	Driver     string     `json:"driver"`
+	Type       string     `json:"type"`
+	VendorID   string     `json:"vendor_id"`
+	ProductID  string     `json:"product_id"`
+	Product    string     `json:"product"`
+	RevisionID string     `json:"revision_id"`
+	Interface  string     `json:"interface"`
+	Busnum     string     `json:"busnum"`
+	Devnum     string     `json:"devnum"`
+	Parent     *BusParent `json:"parent,omitempty"`
+	Class      string     `json:"class"`
+	Subclass   string     `json:"subclass"`
+	Protocol   string     `json:"protocol"`
+	ACSEnabled bool       `json:"acs_enabled"`
 }
 
 func (d Device) String() string {
