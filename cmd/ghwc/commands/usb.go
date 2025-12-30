@@ -23,7 +23,8 @@ var usbCmd = &cobra.Command{
 
 // showUSB show usb information for the host system.
 func showUSB(cmd *cobra.Command, args []string) error {
-	usb, err := ghw.USB()
+	opts := cmd.Context().Value(optsKey).([]ghw.Option)
+	usb, err := ghw.USB(opts...)
 	if err != nil {
 		return errors.Wrap(err, "error getting network info")
 	}

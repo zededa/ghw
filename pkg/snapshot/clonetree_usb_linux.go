@@ -35,7 +35,16 @@ func ExpectedCloneUSBContent() []string {
 				continue
 			}
 		}
-		for _, fileName := range []string{"uevent", "interface", "product"} {
+		for _, fileName := range []string{
+			"uevent",
+			"interface",
+			"product",
+			"devnum",
+			"busnum",
+			"bDeviceClass",
+			"bDeviceSubClass",
+			"bDeviceProtocol",
+		} {
 			paths = append(paths, filepath.Join(fullDir, fileName))
 		}
 
