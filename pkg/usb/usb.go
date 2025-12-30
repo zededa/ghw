@@ -10,20 +10,34 @@ import (
 	"strings"
 
 	"github.com/jaypipes/ghw/internal/config"
+	"github.com/jaypipes/ghw/pkg/bus"
 	"github.com/jaypipes/ghw/pkg/marshal"
+	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
 )
 
 type Device struct {
-	Driver     string `json:"driver"`
-	Type       string `json:"type"`
-	VendorID   string `json:"vendor_id"`
-	ProductID  string `json:"product_id"`
-	Product    string `json:"product"`
-	RevisionID string `json:"revision_id"`
-	Interface  string `json:"interface"`
+	Driver     string        `json:"driver"`
+	Type       string        `json:"type"`
+	VendorID   string        `json:"vendor_id"`
+	ProductID  string        `json:"product_id"`
+	Product    string        `json:"product"`
+	RevisionID string        `json:"revision_id"`
+	Interface  string        `json:"interface"`
+	Devnum     string        `json:"devnum"`
+	Parent     bus.BusParent `json:"parent,omitempty"`
+	Class      string        `json:"class"`
+	Subclass   string        `json:"subclass"`
+	Protocol   string        `json:"protocol"`
+	Controller string        `json:"controller,omitempty"`
+	usbAddress.Address
 }
 
 func (d Device) String() string {
+	address := ""
+	if d.Port != "" {
+		address = d.Address.String()
+	}
+
 	kvs := []struct {
 		name  string
 		value string
@@ -35,6 +49,27 @@ func (d Device) String() string {
 		{"product", d.Product},
 		{"revisionID", d.RevisionID},
 		{"interface", d.Interface},
+		{"pci_address", d.Controller},
+		{"address", address},
+	}
+
+	if d.Parent.PCI != nil {
+		kvs = append(kvs, struct {
+			name  string
+			value string
+		}{
+			name:  "parent-pci",
+			value: fmt.Sprintf("%s:%s:%s.%s", d.Parent.PCI.Domain, d.Parent.PCI.Bus, d.Parent.PCI.Device, d.Parent.PCI.Function),
+		})
+	}
+	if d.Parent.USB != nil {
+		kvs = append(kvs, struct {
+			name  string
+			value string
+		}{
+			name:  "parent-usb",
+			value: fmt.Sprintf("%d-%s", d.Parent.USB.Busnum, d.Parent.USB.Port),
+		})
 	}
 
 	var str strings.Builder
@@ -83,13 +118,14 @@ func (i *Info) String() string {
 }
 
 // New returns a pointer to an Info struct that contains information about the
-// network interface controllers (NICs) on the host system
+// USB devices on the host system
 func New(args ...any) (*Info, error) {
 	ctx := config.ContextFromArgs(args...)
 	info := &Info{}
 	if err := info.load(ctx); err != nil {
 		return nil, err
 	}
+
 	return info, nil
 }
 
