@@ -23,6 +23,7 @@ import (
 	"github.com/zededa/ghw/pkg/product"
 	"github.com/zededa/ghw/pkg/serial"
 	"github.com/zededa/ghw/pkg/topology"
+	"github.com/zededa/ghw/pkg/tpm"
 	"github.com/zededa/ghw/pkg/usb"
 )
 
@@ -209,4 +210,10 @@ type CANInfo = can.Info
 
 var (
 	CAN = can.New
+)
+
+type TPMInfo = tpm.Info
+
+var (
+	TPM = tpm.New
 )
