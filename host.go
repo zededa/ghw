@@ -26,6 +26,7 @@ import (
 	"github.com/zededa/ghw/pkg/topology"
 	"github.com/zededa/ghw/pkg/tpm"
 	"github.com/zededa/ghw/pkg/usb"
+	"github.com/zededa/ghw/pkg/watchdog"
 )
 
 // HostInfo is a wrapper struct containing information about the host system's
@@ -47,6 +48,7 @@ type HostInfo struct {
 	Serial      *serial.Info      `json:"serial"`
 	CAN         *can.Info         `json:"can"`
 	TPM         *tpm.Info         `json:"tpm"`
+	Watchdog    *watchdog.Info    `json:"watchdog"`
 }
 
 // Host returns a pointer to a HostInfo struct that contains fields with
@@ -116,6 +118,10 @@ func Host(opts ...Option) (*HostInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	watchdogInfo, err := watchdog.New(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	return &HostInfo{
 		CPU:         cpuInfo,
@@ -134,6 +140,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 		Serial:      serialInfo,
 		CAN:         canInfo,
 		TPM:         tpmInfo,
+		Watchdog:    watchdogInfo,
 	}, nil
 }
 
@@ -141,7 +148,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 // structs' String-ified output
 func (info *HostInfo) String() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
 		info.Block.String(),
 		info.CPU.String(),
 		info.GPU.String(),
@@ -158,6 +165,7 @@ func (info *HostInfo) String() string {
 		info.Serial.String(),
 		info.CAN.String(),
 		info.TPM.String(),
+		info.Watchdog.String(),
 	)
 }
 
