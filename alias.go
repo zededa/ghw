@@ -25,6 +25,7 @@ import (
 	"github.com/zededa/ghw/pkg/topology"
 	"github.com/zededa/ghw/pkg/tpm"
 	"github.com/zededa/ghw/pkg/usb"
+	"github.com/zededa/ghw/pkg/watchdog"
 )
 
 // DEPRECATED: Please use Option
@@ -216,4 +217,10 @@ type TPMInfo = tpm.Info
 
 var (
 	TPM = tpm.New
+)
+
+type WatchdogInfo = watchdog.Info
+
+var (
+	Watchdog = watchdog.New
 )
