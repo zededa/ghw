@@ -11,6 +11,7 @@ import (
 	"github.com/zededa/ghw/pkg/baseboard"
 	"github.com/zededa/ghw/pkg/bios"
 	"github.com/zededa/ghw/pkg/block"
+	"github.com/zededa/ghw/pkg/can"
 	"github.com/zededa/ghw/pkg/chassis"
 	"github.com/zededa/ghw/pkg/cpu"
 	"github.com/zededa/ghw/pkg/gpu"
@@ -20,6 +21,7 @@ import (
 	"github.com/zededa/ghw/pkg/pci"
 	pciaddress "github.com/zededa/ghw/pkg/pci/address"
 	"github.com/zededa/ghw/pkg/product"
+	"github.com/zededa/ghw/pkg/serial"
 	"github.com/zededa/ghw/pkg/topology"
 	"github.com/zededa/ghw/pkg/usb"
 )
@@ -201,4 +203,10 @@ type SerialDevice = serial.Device
 
 var (
 	Serial = serial.New
+)
+
+type CANInfo = can.Info
+
+var (
+	CAN = can.New
 )
