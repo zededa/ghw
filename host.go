@@ -8,6 +8,8 @@ package ghw
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/jaypipes/ghw/internal/config"
 	"github.com/jaypipes/ghw/pkg/accelerator"
@@ -50,6 +52,7 @@ type HostInfo struct {
 	TPM         *tpm.Info         `json:"tpm"`
 	Serial      *serial.Info      `json:"serial"`
 	CAN         *can.Info         `json:"can"`
+	StatusLED   bool              `json:"status_led"`
 }
 
 // Host returns a pointer to a HostInfo struct that contains fields with
@@ -125,6 +128,12 @@ func Host(args ...any) (*HostInfo, error) {
 		return nil, err
 	}
 
+	// Simple check for LEDs
+	statusLED := false
+	if entries, err := os.ReadDir(filepath.Join(config.Chroot(ctx), "sys", "class", "leds")); err == nil && len(entries) > 0 {
+		statusLED = true
+	}
+
 	return &HostInfo{
 		CPU:         cpuInfo,
 		Memory:      memInfo,
@@ -143,6 +152,7 @@ func Host(args ...any) (*HostInfo, error) {
 		TPM:         tpmInfo,
 		Serial:      serialInfo,
 		CAN:         canInfo,
+		StatusLED:   statusLED,
 	}, nil
 }
 
@@ -150,7 +160,7 @@ func Host(args ...any) (*HostInfo, error) {
 // structs' String-ified output
 func (info *HostInfo) String() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\nStatusLED: %v\n",
 		info.Block.String(),
 		info.CPU.String(),
 		info.GPU.String(),
@@ -168,6 +178,7 @@ func (info *HostInfo) String() string {
 		info.TPM.String(),
 		info.Serial.String(),
 		info.CAN.String(),
+		info.StatusLED,
 	)
 }
 
