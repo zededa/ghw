@@ -24,6 +24,7 @@ import (
 	"github.com/jaypipes/ghw/pkg/product"
 	"github.com/jaypipes/ghw/pkg/serial"
 	"github.com/jaypipes/ghw/pkg/topology"
+	"github.com/jaypipes/ghw/pkg/tpm"
 	"github.com/jaypipes/ghw/pkg/usb"
 )
 
@@ -45,6 +46,7 @@ type HostInfo struct {
 	USB         *usb.Info         `json:"usb"`
 	Serial      *serial.Info      `json:"serial"`
 	CAN         *can.Info         `json:"can"`
+	TPM         *tpm.Info         `json:"tpm"`
 }
 
 // Host returns a pointer to a HostInfo struct that contains fields with
@@ -110,6 +112,10 @@ func Host(opts ...Option) (*HostInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	tpmInfo, err := tpm.New(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	return &HostInfo{
 		CPU:         cpuInfo,
@@ -127,6 +133,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 		USB:         usbInfo,
 		Serial:      serialInfo,
 		CAN:         canInfo,
+		TPM:         tpmInfo,
 	}, nil
 }
 
@@ -134,7 +141,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 // structs' String-ified output
 func (info *HostInfo) String() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
 		info.Block.String(),
 		info.CPU.String(),
 		info.GPU.String(),
@@ -150,6 +157,7 @@ func (info *HostInfo) String() string {
 		info.USB.String(),
 		info.Serial.String(),
 		info.CAN.String(),
+		info.TPM.String(),
 	)
 }
 
