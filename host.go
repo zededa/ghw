@@ -8,6 +8,8 @@ package ghw
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/zededa/ghw/pkg/accelerator"
 	"github.com/zededa/ghw/pkg/baseboard"
@@ -20,6 +22,7 @@ import (
 	"github.com/zededa/ghw/pkg/marshal"
 	"github.com/zededa/ghw/pkg/memory"
 	"github.com/zededa/ghw/pkg/net"
+	"github.com/zededa/ghw/pkg/option"
 	"github.com/zededa/ghw/pkg/pci"
 	"github.com/zededa/ghw/pkg/product"
 	"github.com/zededa/ghw/pkg/serial"
@@ -49,6 +52,7 @@ type HostInfo struct {
 	CAN         *can.Info         `json:"can"`
 	TPM         *tpm.Info         `json:"tpm"`
 	Watchdog    *watchdog.Info    `json:"watchdog"`
+	StatusLED   bool              `json:"status_led"`
 }
 
 // Host returns a pointer to a HostInfo struct that contains fields with
@@ -123,6 +127,17 @@ func Host(opts ...Option) (*HostInfo, error) {
 		return nil, err
 	}
 
+	// Simple check for LEDs
+	statusLED := false
+	merged := option.FromEnv()
+	for _, opt := range opts {
+		opt(merged)
+	}
+
+	if entries, err := os.ReadDir(filepath.Join(merged.Chroot, "sys", "class", "leds")); err == nil && len(entries) > 0 {
+		statusLED = true
+	}
+
 	return &HostInfo{
 		CPU:         cpuInfo,
 		Memory:      memInfo,
@@ -141,6 +156,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 		CAN:         canInfo,
 		TPM:         tpmInfo,
 		Watchdog:    watchdogInfo,
+		StatusLED:   statusLED,
 	}, nil
 }
 
@@ -148,7 +164,7 @@ func Host(opts ...Option) (*HostInfo, error) {
 // structs' String-ified output
 func (info *HostInfo) String() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+		"%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\nStatusLED: %v\n",
 		info.Block.String(),
 		info.CPU.String(),
 		info.GPU.String(),
@@ -166,6 +182,7 @@ func (info *HostInfo) String() string {
 		info.CAN.String(),
 		info.TPM.String(),
 		info.Watchdog.String(),
+		info.StatusLED,
 	)
 }
 
