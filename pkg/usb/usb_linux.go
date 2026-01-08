@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/jaypipes/ghw/pkg/linuxpath"
@@ -90,14 +90,7 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		return devs, []error{err}
 	}
 
-	acsCache := make(map[string]bool)
-
 	for _, dir := range usbDevicesDirs {
-		// Skip interfaces, only want root devices
-		if strings.Contains(dir.Name(), ":") {
-			continue
-		}
-
 		fullDir, err := os.Readlink(filepath.Join(paths.SysBusUsbDevices, dir.Name()))
 		if err != nil {
 			continue
@@ -118,8 +111,11 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 
 		dev.Interface = slurp(filepath.Join(fullDir, "interface"))
 		dev.Product = slurp(filepath.Join(fullDir, "product"))
-		dev.Busnum = slurp(filepath.Join(fullDir, "busnum"))
 		dev.Devnum = slurp(filepath.Join(fullDir, "devnum"))
+		dev.Busnum, dev.Port, err = extractUSBBusnumPort(fullDir)
+		if err != nil {
+			continue
+		}
 		dev.Class = slurp(filepath.Join(fullDir, "bDeviceClass"))
 		dev.Subclass = slurp(filepath.Join(fullDir, "bDeviceSubClass"))
 		dev.Protocol = slurp(filepath.Join(fullDir, "bDeviceProtocol"))
@@ -128,36 +124,22 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		parentDir := filepath.Dir(fullDir)
 		// Check if parent is USB
 		if _, err := os.Stat(filepath.Join(parentDir, "busnum")); err == nil {
-			// It's a USB parent
-			bus := slurp(filepath.Join(parentDir, "busnum"))
-			devnum := slurp(filepath.Join(parentDir, "devnum"))
-			dev.Parent = &BusParent{
-				USB: &USBAddress{Bus: bus, Devnum: devnum},
-			}
-		} else {
-			// Check if parent is PCI
-			parentName := filepath.Base(parentDir)
-			if m := pciBDFRe.FindStringSubmatch(parentName); m != nil {
-				dev.Parent = &BusParent{
-					PCI: &PCIAddress{
-						Domain:   m[1],
-						Bus:      m[2],
-						Device:   m[3],
-						Function: m[4],
-					},
+			busnum, port, err := extractUSBBusnumPort(parentDir)
+			if err == nil && port != "" && port != dev.Port {
+				dev.Parent.USB = &USBAddress{
+					Busnum: busnum,
+					Port:   port,
 				}
 			}
 		}
 
-		// ACS Logic
-		pciAddr := findPCIAddress(fullDir)
-		if pciAddr != "" {
-			if enabled, ok := acsCache[pciAddr]; ok {
-				dev.ACSEnabled = enabled
-			} else {
-				enabled = checkACSEnabled(pciAddr)
-				acsCache[pciAddr] = enabled
-				dev.ACSEnabled = enabled
+		pciAddr := findPCIAddress(fullDir, paths.SysBlock)
+		if m := pciBDFRe.FindStringSubmatch(pciAddr); m != nil {
+			dev.Parent.PCI = &PCIAddress{
+				Domain:   m[1],
+				Bus:      m[2],
+				Device:   m[3],
+				Function: m[4],
 			}
 		}
 
@@ -167,28 +149,36 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 	return devs, errs
 }
 
-func findPCIAddress(dir string) string {
-	for {
-		base := filepath.Base(dir)
-		if pciBDFRe.MatchString(base) {
-			return base
-		}
-		if base == "devices" || base == "/" || base == "." || dir == "/" {
-			return ""
-		}
-		dir = filepath.Dir(dir)
+func findPCIAddress(path string, sysPath string) string {
+	path = strings.TrimLeft(path, sysPath)
+	re := regexp.MustCompile(`\/?devices\/pci[\d:.]*\/(\d{4}:[a-f\d:\.]+)\/`)
+
+	matches := re.FindStringSubmatch(path)
+	if len(matches) != 2 {
+		return ""
 	}
+	pciAddress := matches[1]
+
+	return pciAddress
 }
 
-func checkACSEnabled(addr string) bool {
-	path, err := exec.LookPath("lspci")
-	if err != nil {
-		return false
+// extractUSBBusnumPort extracts busnum and port number out of a sysfs device path
+func extractUSBBusnumPort(path string) (uint16, string, error) {
+	var busnum uint16
+
+	re := regexp.MustCompile(`\/usb\d+(\/\d+\-[\d\.]+)*(\/(\d+)\-([\d\.]+))`)
+
+	matches := re.FindStringSubmatch(path)
+	if len(matches) < 3 {
+		return busnum, "", fmt.Errorf("could not extract usb portnum from %s", path)
 	}
-	cmd := exec.Command(path, "-vv", "-s", addr)
-	out, err := cmd.Output()
+	port := matches[len(matches)-1]
+	busnumString := matches[len(matches)-2]
+	busnum64, err := strconv.ParseUint(busnumString, 10, 16)
 	if err != nil {
-		return false
+		return 0, port, fmt.Errorf("could not extract usb busnum from %s", path)
 	}
-	return strings.Contains(string(out), "Access Control Services")
+	busnum = uint16(busnum64)
+
+	return busnum, port, nil
 }
