@@ -11,6 +11,7 @@ import (
 	"github.com/jaypipes/ghw/pkg/baseboard"
 	"github.com/jaypipes/ghw/pkg/bios"
 	"github.com/jaypipes/ghw/pkg/block"
+	"github.com/jaypipes/ghw/pkg/can"
 	"github.com/jaypipes/ghw/pkg/chassis"
 	"github.com/jaypipes/ghw/pkg/cpu"
 	"github.com/jaypipes/ghw/pkg/gpu"
@@ -22,7 +23,9 @@ import (
 	"github.com/jaypipes/ghw/pkg/product"
 	"github.com/jaypipes/ghw/pkg/serial"
 	"github.com/jaypipes/ghw/pkg/topology"
+	"github.com/jaypipes/ghw/pkg/tpm"
 	"github.com/jaypipes/ghw/pkg/usb"
+	"github.com/jaypipes/ghw/pkg/watchdog"
 )
 
 // DEPRECATED: Please use Option
@@ -202,4 +205,22 @@ type SerialDevice = serial.Device
 
 var (
 	Serial = serial.New
+)
+
+type CANInfo = can.Info
+
+var (
+	CAN = can.New
+)
+
+type TPMInfo = tpm.Info
+
+var (
+	TPM = tpm.New
+)
+
+type WatchdogInfo = watchdog.Info
+
+var (
+	Watchdog = watchdog.New
 )

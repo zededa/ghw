@@ -38,7 +38,7 @@ type Device struct {
 }
 
 func (d Device) String() string {
-	return fmt.Sprintf("%s (%s)", d.Name, d.Address)
+	return fmt.Sprintf("%s (address: %s) (io: %s) (irq: %s) (parent: %+v)", d.Name, d.Address, d.IO, d.IRQ, d.Parent)
 }
 
 type Info struct {
