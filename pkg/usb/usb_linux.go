@@ -112,7 +112,7 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		dev.Interface = slurp(filepath.Join(fullDir, "interface"))
 		dev.Product = slurp(filepath.Join(fullDir, "product"))
 		dev.Devnum = slurp(filepath.Join(fullDir, "devnum"))
-		dev.Busnum, dev.Port, err = extractUSBBusnumPort(fullDir)
+		dev.Busnum, dev.Port, err = ExtractUSBBusnumPort(fullDir)
 		if err != nil {
 			continue
 		}
@@ -124,7 +124,7 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		parentDir := filepath.Dir(fullDir)
 		// Check if parent is USB
 		if _, err := os.Stat(filepath.Join(parentDir, "busnum")); err == nil {
-			busnum, port, err := extractUSBBusnumPort(parentDir)
+			busnum, port, err := ExtractUSBBusnumPort(parentDir)
 			if err == nil && port != "" && port != dev.Port {
 				dev.Parent.USB = &USBAddress{
 					Busnum: busnum,
@@ -162,8 +162,8 @@ func findPCIAddress(path string, sysPath string) string {
 	return pciAddress
 }
 
-// extractUSBBusnumPort extracts busnum and port number out of a sysfs device path
-func extractUSBBusnumPort(path string) (uint16, string, error) {
+// ExtractUSBBusnumPort extracts busnum and port number out of a sysfs device path
+func ExtractUSBBusnumPort(path string) (uint16, string, error) {
 	var busnum uint16
 
 	re := regexp.MustCompile(`\/usb\d+(\/\d+\-[\d\.]+)*(\/(\d+)\-([\d\.]+))`)
