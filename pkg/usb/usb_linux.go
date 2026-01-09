@@ -90,6 +90,11 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		return devs, []error{err}
 	}
 
+	// filter out USB devices with the same address
+	// this happens if a USB device has several "functions"
+	// as functions cannot be passed-through separately,
+	// we ignore these
+	seen := map[USBAddress]struct{}{}
 	for _, dir := range usbDevicesDirs {
 		fullDir, err := os.Readlink(filepath.Join(paths.SysBusUsbDevices, dir.Name()))
 		if err != nil {
@@ -116,6 +121,11 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		if err != nil {
 			continue
 		}
+		_, found := seen[dev.USBAddress]
+		if found {
+			continue
+		}
+		seen[dev.USBAddress] = struct{}{}
 		dev.Class = slurp(filepath.Join(fullDir, "bDeviceClass"))
 		dev.Subclass = slurp(filepath.Join(fullDir, "bDeviceSubClass"))
 		dev.Protocol = slurp(filepath.Join(fullDir, "bDeviceProtocol"))
