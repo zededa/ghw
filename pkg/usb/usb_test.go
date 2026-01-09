@@ -16,6 +16,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/jaypipes/ghw/pkg/bus"
+	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
+	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
 )
 
 func TestUSB(t *testing.T) {
@@ -92,7 +96,7 @@ func TestDeviceString(t *testing.T) {
 				VendorID:  "8086",
 				ProductID: "1234",
 				Devnum:    "002",
-				USBAddress: USBAddress{
+				Address: usbAddress.Address{
 					Busnum: 1,
 					Port:   "2",
 				},
@@ -105,13 +109,13 @@ func TestDeviceString(t *testing.T) {
 				VendorID:  "8086",
 				ProductID: "1234",
 				Devnum:    "003",
-				Parent: BusParent{
-					USB: &USBAddress{
+				Parent: bus.BusParent{
+					USB: &usbAddress.Address{
 						Busnum: 001,
 						Port:   "001",
 					},
 				},
-				USBAddress: USBAddress{
+				Address: usbAddress.Address{
 					Busnum: 2,
 					Port:   "3",
 				},
@@ -124,15 +128,15 @@ func TestDeviceString(t *testing.T) {
 				VendorID:  "8086",
 				ProductID: "1234",
 				Devnum:    "003",
-				Parent: BusParent{
-					PCI: &PCIAddress{
+				Parent: bus.BusParent{
+					PCI: &pciAddress.Address{
 						Domain:   "0000",
 						Bus:      "00",
 						Device:   "1f",
 						Function: "6",
 					},
 				},
-				USBAddress: USBAddress{
+				Address: usbAddress.Address{
 					Busnum: 2,
 					Port:   "1.2",
 				},

@@ -34,13 +34,11 @@ func showCAN(cmd *cobra.Command, args []string) error {
 
 		for _, device := range can.Devices {
 			fmt.Printf(" %v\n", device.Name)
-			if device.Parent != nil {
-				if device.Parent.PCI != nil {
-					fmt.Printf("  PCI: %v\n", device.Parent.PCI)
-				}
-				if device.Parent.USB != nil {
-					fmt.Printf("  USB: %v\n", device.Parent.USB)
-				}
+			if device.Parent.PCI != nil {
+				fmt.Printf("  PCI: %v\n", device.Parent.PCI)
+			}
+			if device.Parent.USB != nil {
+				fmt.Printf("  USB: %v\n", device.Parent.USB)
 			}
 		}
 	case outputFormatJSON:

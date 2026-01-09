@@ -3,30 +3,14 @@ package can
 import (
 	"fmt"
 
+	"github.com/jaypipes/ghw/pkg/bus"
 	"github.com/jaypipes/ghw/pkg/marshal"
 	"github.com/jaypipes/ghw/pkg/option"
 )
 
-type PCIAddress struct {
-	Domain   string `json:"domain"`
-	Bus      string `json:"bus"`
-	Device   string `json:"device"`
-	Function string `json:"function"`
-}
-
-type USBAddress struct {
-	Bus    string `json:"bus"`
-	Devnum string `json:"devnum"`
-}
-
-type BusParent struct {
-	PCI *PCIAddress `json:"pci,omitempty"`
-	USB *USBAddress `json:"usb,omitempty"`
-}
-
 type Device struct {
-	Name   string     `json:"name"`
-	Parent *BusParent `json:"parent,omitempty"`
+	Name   string        `json:"name"`
+	Parent bus.BusParent `json:"parent,omitempty"`
 }
 
 type Info struct {

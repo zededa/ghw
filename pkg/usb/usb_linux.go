@@ -17,6 +17,9 @@ import (
 
 	"github.com/jaypipes/ghw/pkg/linuxpath"
 	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/jaypipes/ghw/pkg/pci"
+	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
+	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
 )
 
 var pciBDFRe = regexp.MustCompile(`(?i)\b([0-9a-f]{4}):([0-9a-f]{2}):([0-9a-f]{2})\.([0-7])\b`)
@@ -94,7 +97,7 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 	// this happens if a USB device has several "functions"
 	// as functions cannot be passed-through separately,
 	// we ignore these
-	seen := map[USBAddress]struct{}{}
+	seen := map[usbAddress.Address]struct{}{}
 	for _, dir := range usbDevicesDirs {
 		fullDir, err := os.Readlink(filepath.Join(paths.SysBusUsbDevices, dir.Name()))
 		if err != nil {
@@ -121,11 +124,11 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		if err != nil {
 			continue
 		}
-		_, found := seen[dev.USBAddress]
+		_, found := seen[dev.Address]
 		if found {
 			continue
 		}
-		seen[dev.USBAddress] = struct{}{}
+		seen[dev.Address] = struct{}{}
 		dev.Class = slurp(filepath.Join(fullDir, "bDeviceClass"))
 		dev.Subclass = slurp(filepath.Join(fullDir, "bDeviceSubClass"))
 		dev.Protocol = slurp(filepath.Join(fullDir, "bDeviceProtocol"))
@@ -136,16 +139,17 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 		if _, err := os.Stat(filepath.Join(parentDir, "busnum")); err == nil {
 			busnum, port, err := ExtractUSBBusnumPort(parentDir)
 			if err == nil && port != "" && port != dev.Port {
-				dev.Parent.USB = &USBAddress{
+				dev.Parent.USB = &usbAddress.Address{
 					Busnum: busnum,
 					Port:   port,
 				}
 			}
 		}
 
-		pciAddr := findPCIAddress(fullDir, paths.SysBlock)
+		sysLessFullDir := strings.TrimPrefix(fullDir, paths.SysBlock)
+		pciAddr := pci.FindPCIAddress(sysLessFullDir)
 		if m := pciBDFRe.FindStringSubmatch(pciAddr); m != nil {
-			dev.Parent.PCI = &PCIAddress{
+			dev.Parent.PCI = &pciAddress.Address{
 				Domain:   m[1],
 				Bus:      m[2],
 				Device:   m[3],
@@ -157,19 +161,6 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 	}
 
 	return devs, errs
-}
-
-func findPCIAddress(path string, sysPath string) string {
-	path = strings.TrimLeft(path, sysPath)
-	re := regexp.MustCompile(`\/?devices\/pci[\d:.]*\/(\d{4}:[a-f\d:\.]+)\/`)
-
-	matches := re.FindStringSubmatch(path)
-	if len(matches) != 2 {
-		return ""
-	}
-	pciAddress := matches[1]
-
-	return pciAddress
 }
 
 // ExtractUSBBusnumPort extracts busnum and port number out of a sysfs device path

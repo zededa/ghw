@@ -9,42 +9,27 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jaypipes/ghw/pkg/bus"
 	"github.com/jaypipes/ghw/pkg/marshal"
 	"github.com/jaypipes/ghw/pkg/option"
+	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
 )
 
-type PCIAddress struct {
-	Domain   string `json:"domain"`
-	Bus      string `json:"bus"`
-	Device   string `json:"device"`
-	Function string `json:"function"`
-}
-
-type USBAddress struct {
-	Busnum uint16 `json:"bus"`
-	Port   string `json:"port"`
-}
-
-type BusParent struct {
-	PCI *PCIAddress `json:"pci,omitempty"`
-	USB *USBAddress `json:"usb,omitempty"`
-}
-
 type Device struct {
-	Driver     string    `json:"driver"`
-	Type       string    `json:"type"`
-	VendorID   string    `json:"vendor_id"`
-	ProductID  string    `json:"product_id"`
-	Product    string    `json:"product"`
-	RevisionID string    `json:"revision_id"`
-	Interface  string    `json:"interface"`
-	Devnum     string    `json:"devnum"`
-	Parent     BusParent `json:"parent,omitempty"`
-	Class      string    `json:"class"`
-	Subclass   string    `json:"subclass"`
-	Protocol   string    `json:"protocol"`
-	Controller string    `json:"controller,omitempty"`
-	USBAddress
+	Driver     string        `json:"driver"`
+	Type       string        `json:"type"`
+	VendorID   string        `json:"vendor_id"`
+	ProductID  string        `json:"product_id"`
+	Product    string        `json:"product"`
+	RevisionID string        `json:"revision_id"`
+	Interface  string        `json:"interface"`
+	Devnum     string        `json:"devnum"`
+	Parent     bus.BusParent `json:"parent,omitempty"`
+	Class      string        `json:"class"`
+	Subclass   string        `json:"subclass"`
+	Protocol   string        `json:"protocol"`
+	Controller string        `json:"controller,omitempty"`
+	usbAddress.Address
 }
 
 func (d Device) String() string {
