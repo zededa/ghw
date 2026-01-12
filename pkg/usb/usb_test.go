@@ -10,7 +10,6 @@
 package usb
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -18,8 +17,11 @@ import (
 	"testing"
 
 	"github.com/jaypipes/ghw/pkg/bus"
+	"github.com/jaypipes/ghw/pkg/option"
 	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
+	"github.com/jaypipes/ghw/pkg/snapshot"
 	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
+	"github.com/jaypipes/ghw/testdata"
 )
 
 func TestUSB(t *testing.T) {
@@ -62,25 +64,51 @@ MODALIAS=usb:v046ApA087d0101dc00dsc00dp00ic03isc01ip02in00
 
 }
 
+func TestSnapshot(t *testing.T) {
+	testdataPath, err := testdata.SnapshotsDirectory()
+	if err != nil {
+		t.Fatalf("Expected nil err, but got %v", err)
+	}
+
+	snapshotPath := filepath.Join(testdataPath, "linux-amd64-intel-i7-1270P.tar.gz")
+	unpackDir := t.TempDir()
+	err = snapshot.UnpackInto(snapshotPath, unpackDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := New(option.WithChroot(unpackDir))
+	if err != nil {
+		t.Fatalf("Expected nil err, but got %v", err)
+	}
+	if info == nil {
+		t.Fatalf("Expected non-nil USB info, but got nil")
+	}
+
+	usbParentConsistencyCheck(t, info.Devices)
+}
 func TestDeviceParent(t *testing.T) {
 	info, err := New()
 	if err != nil {
 		t.Fatal(err)
 	}
+	devs := info.Devices
 
-	addressesSeen := map[string]struct{}{}
-	for _, dev := range info.Devices {
-		addr := fmt.Sprintf("%d-%s", dev.Busnum, dev.Port)
-		addressesSeen[addr] = struct{}{}
+	usbParentConsistencyCheck(t, devs)
+}
+
+func usbParentConsistencyCheck(t *testing.T, devs []*Device) {
+	addressesSeen := map[usbAddress.Address]struct{}{}
+	for _, dev := range devs {
+		addressesSeen[dev.Address] = struct{}{}
 	}
-	for _, dev := range info.Devices {
+	for _, dev := range devs {
 		if dev.Parent.USB == nil {
 			continue
 		}
-		parentAddr := fmt.Sprintf("%d-%s", dev.Parent.USB.Busnum, dev.Parent.USB.Port)
-		_, found := addressesSeen[parentAddr]
+		_, found := addressesSeen[*dev.Parent.USB]
 		if !found {
-			t.Fatalf("could not find parent device for %s, addr: %s\n", dev, parentAddr)
+			t.Fatalf("could not find parent device for %v, addr: %v\n", dev, dev.Parent.USB)
 		}
 	}
 }
