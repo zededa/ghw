@@ -44,6 +44,7 @@ type NIC struct {
 	// PCIAddress is a pointer to the PCI address for this NIC, or nil if there
 	// is no PCI address for this NIC.
 	PCIAddress *string `json:"pci_address,omitempty"`
+	USBAddress *string `json:"usb_address,omitempty"`
 	// Speed is a string describing the link speed of this NIC, e.g. "1000Mb/s"
 	Speed string `json:"speed"`
 	// Duplex is a string indicating the current duplex setting of this NIC,
