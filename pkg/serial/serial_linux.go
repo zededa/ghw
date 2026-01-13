@@ -10,18 +10,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/jaypipes/ghw/pkg/bus"
 	"github.com/jaypipes/ghw/pkg/linuxpath"
 	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/jaypipes/ghw/pkg/pci/address"
+	"github.com/jaypipes/ghw/pkg/usb"
 )
-
-// Matches PCI BDF anywhere inside a string/path, e.g.
-// 0000:00:02.0, .../0000:00:02.0/... , 0000:00:02.0:0.0
-var pciBDFRe = regexp.MustCompile(`(?i)\b([0-9a-f]{4}):([0-9a-f]{2}):([0-9a-f]{2})\.([0-7])\b`)
 
 func (i *Info) load(opts *option.Options) error {
 	var errs []error
@@ -98,14 +96,14 @@ func serialPortFromTTY(sysfs, ttyClass, tty string) (*Device, bool, error) {
 		ioRange = fmt.Sprintf("%04x-%04x", start, end)
 	}
 
-	// We don't have Parent in Device struct yet, so we skip it for now.
-	// But we can use the info to populate existing fields.
-
-	var parent *BusParent
-	if pciAddr, ok := pciAddressFromString(devSys); ok {
-		parent = &BusParent{
-			PCI: pciAddr,
-		}
+	var parent bus.BusParent
+	if pciAddr := address.FromString(devSys); pciAddr != nil {
+		parent.PCI = pciAddr
+	}
+	bus, port, err := usb.ExtractUSBBusnumPort(devSys)
+	if err == nil {
+		parent.USB.Busnum = bus
+		parent.USB.Port = port
 	}
 
 	sp := &Device{
@@ -122,22 +120,9 @@ func isIOPortUART(ioType uint64) bool {
 	return ioType == 0
 }
 
-func pciAddressFromString(s string) (*PCIAddress, bool) {
-	m := pciBDFRe.FindStringSubmatch(s)
-	if m == nil {
-		return nil, false
-	}
-	return &PCIAddress{
-		Domain:   m[1],
-		Bus:      m[2],
-		Device:   m[3],
-		Function: m[4],
-	}, true
-}
-
 func findPCIDeviceDirFromResolvedDevice(sysfs, devSys string) (string, bool) {
-	addr, ok := pciAddressFromString(devSys)
-	if !ok {
+	addr := address.FromString(devSys)
+	if addr == nil {
 		return "", false
 	}
 

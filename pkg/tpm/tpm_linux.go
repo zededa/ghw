@@ -4,14 +4,18 @@ import (
 	"bufio"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/jaypipes/ghw/pkg/linuxpath"
 	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/jaypipes/ghw/pkg/util"
 )
 
 func (i *Info) load(opts *option.Options) error {
+	paths := linuxpath.New(opts)
 	// Check /sys/class/tpm/tpm0
-	tpmPath := filepath.Join(opts.Chroot, "sys", "class", "tpm", "tpm0")
+	tpmPath := filepath.Join(paths.SysClassTpm, "tpm0")
 	if _, err := os.Stat(tpmPath); err != nil {
 		i.Present = false
 		return nil
@@ -48,6 +52,14 @@ func (i *Info) load(opts *option.Options) error {
 		// Try device/vendor (PCI)
 		if b, err := os.ReadFile(filepath.Join(tpmPath, "device", "vendor")); err == nil {
 			i.Manufacturer = strings.TrimSpace(string(b))
+		}
+	}
+
+	// Fallback for SpecVersion using tpm_version_major
+	if i.SpecVersion == "" {
+		versionMajor := util.SafeIntFromFile(opts, filepath.Join(tpmPath, "tpm_version_major"))
+		if versionMajor > 0 {
+			i.SpecVersion = strconv.Itoa(versionMajor) + ".0"
 		}
 	}
 

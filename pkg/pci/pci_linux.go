@@ -8,6 +8,7 @@ package pci
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/jaypipes/pcidb"
@@ -416,4 +417,19 @@ func (info *Info) getDevices(opts *option.Options) []*Device {
 		devs = append(devs, device)
 	}
 	return devs
+}
+
+// FindPCIAddress extract the pci address from a sysfs path without /sys
+func FindPCIAddress(path string) string {
+	re := regexp.MustCompile(`\/?devices\/pci[\d:.]*\/(\d{4}:[a-f\d:\.]+)`)
+
+	matches := re.FindStringSubmatch(path)
+	// first element is the full string match like /devices/pci0000:00/0000:00:0d.0
+	// but we need the first substring match so we take the second element
+	if len(matches) != 2 {
+		return ""
+	}
+	pciAddress := matches[1]
+
+	return pciAddress
 }

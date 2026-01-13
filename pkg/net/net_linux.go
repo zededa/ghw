@@ -16,6 +16,9 @@ import (
 
 	"github.com/jaypipes/ghw/pkg/linuxpath"
 	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/jaypipes/ghw/pkg/pci"
+	"github.com/jaypipes/ghw/pkg/usb"
+	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
 	"github.com/jaypipes/ghw/pkg/util"
 )
 
@@ -75,7 +78,23 @@ func nics(opts *option.Options) []*NIC {
 			nic.setNicAttrSysFs(paths, filename)
 		}
 
-		nic.PCIAddress = netDevicePCIAddress(paths.SysClassNet, filename)
+		devPath := netDeviceDevPath(paths.SysClassNet, filename)
+		pciAddr := pci.FindPCIAddress(devPath)
+		if pciAddr != "" {
+			nic.PCIAddress = &pciAddr
+		}
+		busnum, port, err := usb.ExtractUSBBusnumPort(devPath)
+		if err == nil {
+			addr := usbAddress.Address{
+				Busnum: busnum,
+				Port:   port,
+			}
+
+			usbAddr := addr.String()
+			if usbAddr != "" {
+				nic.USBAddress = &usbAddr
+			}
+		}
 
 		nics = append(nics, nic)
 	}
@@ -197,7 +216,7 @@ func netParseEthtoolFeature(line string) *NICCapability {
 	}
 }
 
-func netDevicePCIAddress(netDevDir, netDevName string) *string {
+func netDeviceDevPath(netDevDir, netDevName string) string {
 	// what we do here is not that hard in the end: we need to navigate the sysfs
 	// up to the directory belonging to the device backing the network interface.
 	// we can make few relatively safe assumptions, but the safest way is follow
@@ -209,7 +228,7 @@ func netDevicePCIAddress(netDevDir, netDevName string) *string {
 	dest, err := os.Readlink(netPath)
 	if err != nil {
 		// bail out with empty value
-		return nil
+		return ""
 	}
 	// now we have something like dest="../../devices/pci0000:00/0000:00:1f.6/net/enp0s31f6"
 	// remember the path is relative to netDevDir="/sys/class/net"
@@ -222,7 +241,7 @@ func netDevicePCIAddress(netDevDir, netDevName string) *string {
 	dest, err = os.Readlink(filepath.Join(netDev, "device"))
 	if err != nil {
 		// bail out with empty value
-		return nil
+		return ""
 	}
 	// we expect something like="../../../0000:00:1f.6"
 
@@ -231,21 +250,7 @@ func netDevicePCIAddress(netDevDir, netDevName string) *string {
 	// leading to "/sys/devices/pci0000:00/0000:00:1f.6/"
 	// finally here!
 
-	// to which bus is this device connected to?
-	dest, err = os.Readlink(filepath.Join(devPath, "subsystem"))
-	if err != nil {
-		// bail out with empty value
-		return nil
-	}
-	// ok, this is hacky, but since we need the last *two* path components and we know we
-	// are running on linux...
-	if !strings.HasSuffix(dest, "/bus/pci") {
-		// unsupported and unexpected bus!
-		return nil
-	}
-
-	pciAddr := filepath.Base(devPath)
-	return &pciAddr
+	return devPath
 }
 
 func (nic *NIC) setNicAttrSysFs(paths *linuxpath.Paths, dev string) {
