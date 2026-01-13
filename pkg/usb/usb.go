@@ -118,7 +118,7 @@ func (i *Info) String() string {
 }
 
 // New returns a pointer to an Info struct that contains information about the
-// network interface controllers (NICs) on the host system
+// USB devices on the host system
 func New(opt ...option.Option) (*Info, error) {
 	opts := &option.Options{}
 	for _, o := range opt {
