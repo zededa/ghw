@@ -8,7 +8,7 @@ package baseboard
 import (
 	"github.com/yusufpapurcu/wmi"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 const wqlBaseboard = "SELECT Manufacturer, SerialNumber, Tag, Version, Product FROM Win32_BaseBoard"

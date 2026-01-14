@@ -9,9 +9,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/zededa/ghw"
 )
 
 // topologyCmd represents the install command

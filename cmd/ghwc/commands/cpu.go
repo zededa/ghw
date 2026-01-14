@@ -11,9 +11,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/jaypipes/ghw"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/zededa/ghw"
 )
 
 // cpuCmd represents the install command

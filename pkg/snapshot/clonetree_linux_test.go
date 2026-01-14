@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/snapshot"
+	"github.com/zededa/ghw/pkg/snapshot"
 )
 
 // NOTE: we intentionally use `os.RemoveAll` - not `snapshot.Cleanup` because we

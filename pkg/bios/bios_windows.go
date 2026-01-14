@@ -8,7 +8,7 @@ package bios
 import (
 	"github.com/yusufpapurcu/wmi"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 const wqlBIOS = "SELECT InstallDate, Manufacturer, Version FROM CIM_BIOSElement"
