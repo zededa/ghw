@@ -11,7 +11,7 @@ package memory
 import (
 	"runtime"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 
 	"github.com/pkg/errors"
 )

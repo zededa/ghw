@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 // PathRoots holds the roots of all the filesystem subtrees

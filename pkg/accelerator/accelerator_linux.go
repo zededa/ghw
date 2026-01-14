@@ -6,8 +6,8 @@
 package accelerator
 
 import (
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/pci"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/pci"
 )
 
 // PCI IDs list available at https://admin.pci-ids.ucw.cz/read/PD

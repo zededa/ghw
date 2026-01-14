@@ -9,8 +9,8 @@ package memory
 import (
 	"github.com/yusufpapurcu/wmi"
 
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/unitutil"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/unitutil"
 )
 
 const wqlOperatingSystem = "SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem"

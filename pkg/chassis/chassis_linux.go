@@ -6,9 +6,9 @@
 package chassis
 
 import (
-	"github.com/jaypipes/ghw/pkg/linuxdmi"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/linuxdmi"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 func (i *Info) load(opts *option.Options) error {

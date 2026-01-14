@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/cpu"
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/memory"
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/cpu"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/memory"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 func (i *Info) load(opts *option.Options) error {

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/block"
+	"github.com/zededa/ghw/pkg/block"
 
-	"github.com/jaypipes/ghw/testdata"
+	"github.com/zededa/ghw/testdata"
 )
 
 // nolint: gocyclo

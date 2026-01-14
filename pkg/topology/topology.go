@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/cpu"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/memory"
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/cpu"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/memory"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 // Architecture describes the overall hardware architecture. It can be either

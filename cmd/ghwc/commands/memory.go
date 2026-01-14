@@ -7,9 +7,9 @@
 package commands
 
 import (
-	"github.com/jaypipes/ghw"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/zededa/ghw"
 )
 
 // memoryCmd represents the install command
