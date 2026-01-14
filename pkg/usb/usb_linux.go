@@ -15,11 +15,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/pci"
-	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/pci"
+	pciAddress "github.com/zededa/ghw/pkg/pci/address"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
 )
 
 var pciBDFRe = regexp.MustCompile(`(?i)\b([0-9a-f]{4}):([0-9a-f]{2}):([0-9a-f]{2})\.([0-7])\b`)

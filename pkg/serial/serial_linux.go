@@ -14,11 +14,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/bus"
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/pci/address"
-	"github.com/jaypipes/ghw/pkg/usb"
+	"github.com/zededa/ghw/pkg/bus"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/pkg/usb"
 )
 
 func (i *Info) load(opts *option.Options) error {

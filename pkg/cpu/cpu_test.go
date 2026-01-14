@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/cpu"
+	"github.com/zededa/ghw/pkg/cpu"
 )
 
 // nolint: gocyclo

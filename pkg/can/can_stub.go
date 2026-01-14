@@ -4,7 +4,7 @@
 package can
 
 import (
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 func (i *Info) load(opts *option.Options) error {

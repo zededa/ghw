@@ -1,8 +1,8 @@
 package bus
 
 import (
-	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
+	pciAddress "github.com/zededa/ghw/pkg/pci/address"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
 )
 
 type BusParent struct {

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 func TestSerial(t *testing.T) {

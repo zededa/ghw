@@ -8,9 +8,9 @@ package serial
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/pkg/bus"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/bus"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 type Device struct {

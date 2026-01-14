@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 const (

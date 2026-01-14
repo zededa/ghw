@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/unitutil"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/unitutil"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 // DriveType describes the general category of drive device
@@ -106,7 +106,7 @@ func (dt *DriveType) UnmarshalJSON(b []byte) error {
 // represents more of the physical hardware interface than the storage
 // protocol, which represents more of the software interface.
 //
-// See discussion on https://github.com/jaypipes/ghw/issues/117
+// See discussion on https://github.com/zededa/ghw/issues/117
 type StorageController int
 
 const (

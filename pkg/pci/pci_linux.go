@@ -13,11 +13,11 @@ import (
 
 	"github.com/jaypipes/pcidb"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/option"
-	pciaddr "github.com/jaypipes/ghw/pkg/pci/address"
-	"github.com/jaypipes/ghw/pkg/topology"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/option"
+	pciaddr "github.com/zededa/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/pkg/topology"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 const (

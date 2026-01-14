@@ -9,7 +9,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 // nolint: gocyclo

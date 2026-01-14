@@ -7,7 +7,7 @@
 package commands
 
 import (
-	"github.com/jaypipes/ghw"
+	"github.com/zededa/ghw"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

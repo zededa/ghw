@@ -13,13 +13,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/pci"
-	"github.com/jaypipes/ghw/pkg/snapshot"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/pci"
+	"github.com/zededa/ghw/pkg/snapshot"
+	"github.com/zededa/ghw/pkg/util"
 
-	"github.com/jaypipes/ghw/testdata"
+	"github.com/zededa/ghw/testdata"
 )
 
 type pciTestCase struct {

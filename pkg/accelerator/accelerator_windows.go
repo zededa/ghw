@@ -5,7 +5,7 @@
 
 package accelerator
 
-import "github.com/jaypipes/ghw/pkg/option"
+import "github.com/zededa/ghw/pkg/option"
 
 func (i *Info) load(opt ...option.Option) error {
 	i.Devices = []*AcceleratorDevice{}

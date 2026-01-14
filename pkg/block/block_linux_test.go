@@ -16,9 +16,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 func TestParseMountEntry(t *testing.T) {

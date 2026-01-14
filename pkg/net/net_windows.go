@@ -10,7 +10,7 @@ import (
 
 	"github.com/yusufpapurcu/wmi"
 
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 const wqlNetworkAdapter = "SELECT Description, DeviceID, Index, InterfaceIndex, MACAddress, Manufacturer, Name, NetConnectionID, ProductName, ServiceName, PhysicalAdapter FROM Win32_NetworkAdapter"

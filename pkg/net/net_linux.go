@@ -14,12 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/pci"
-	"github.com/jaypipes/ghw/pkg/usb"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/pci"
+	"github.com/zededa/ghw/pkg/usb"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 const (

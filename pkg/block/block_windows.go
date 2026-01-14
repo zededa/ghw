@@ -11,8 +11,8 @@ import (
 
 	"github.com/yusufpapurcu/wmi"
 
-	"github.com/jaypipes/ghw/pkg/option"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 type physicalDiskMediaType int

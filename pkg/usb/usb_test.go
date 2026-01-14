@@ -16,12 +16,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/bus"
-	"github.com/jaypipes/ghw/pkg/option"
-	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
-	"github.com/jaypipes/ghw/pkg/snapshot"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
-	"github.com/jaypipes/ghw/testdata"
+	"github.com/zededa/ghw/pkg/bus"
+	"github.com/zededa/ghw/pkg/option"
+	pciAddress "github.com/zededa/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/pkg/snapshot"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
+	"github.com/zededa/ghw/testdata"
 )
 
 func TestUSB(t *testing.T) {

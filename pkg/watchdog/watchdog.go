@@ -3,8 +3,8 @@ package watchdog
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 type Info struct {
