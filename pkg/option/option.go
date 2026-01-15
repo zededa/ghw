@@ -107,6 +107,9 @@ type Options struct {
 	// custom pcidb.WithOption settings, instead of letting ghw load the PCI
 	// database automatically.
 	PCIDB *pcidb.PCIDB
+
+	// Filter USB devices by uevent file path in sysfs
+	USBUeventPath string
 }
 
 func (o *Options) Warn(msg string, args ...interface{}) {
@@ -153,6 +156,12 @@ func WithDisableTools() Option {
 func WithPCIDB(pcidb *pcidb.PCIDB) Option {
 	return func(opts *Options) {
 		opts.PCIDB = pcidb
+	}
+}
+
+func WithUSBUeventPath(path string) Option {
+	return func(opts *Options) {
+		opts.USBUeventPath = path
 	}
 }
 

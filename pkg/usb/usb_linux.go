@@ -35,8 +35,8 @@ func (i *Info) load(opts *option.Options) error {
 	return fmt.Errorf("error(s) happened during reading usb info: %+v", errs)
 }
 
-func fillUSBFromUevent(dir string, dev *Device) (err error) {
-	ueventFp, err := os.Open(filepath.Join(dir, "uevent"))
+func fillUSBFromUevent(dev *Device) (err error) {
+	ueventFp, err := os.Open(dev.UEventFilePath)
 	if err != nil {
 		return
 	}
@@ -112,7 +112,12 @@ func usbs(opts *option.Options) ([]*Device, []error) {
 
 		dev := Device{}
 
-		err = fillUSBFromUevent(fullDir, &dev)
+		dev.UEventFilePath = filepath.Join(fullDir, "uevent")
+		if opts.USBUeventPath != "" && opts.USBUeventPath != dev.UEventFilePath {
+			continue
+		}
+
+		err = fillUSBFromUevent(&dev)
 		if err != nil {
 			errs = append(errs, err)
 		}
