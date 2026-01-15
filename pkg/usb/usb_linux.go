@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jaypipes/ghw/internal/config"
 	"github.com/jaypipes/ghw/pkg/linuxpath"
 	"github.com/jaypipes/ghw/pkg/pci"
 	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
@@ -35,8 +36,8 @@ func (i *Info) load(ctx context.Context) error {
 	return fmt.Errorf("error(s) happened during reading usb info: %+v", errs)
 }
 
-func fillUSBFromUevent(dir string, dev *Device) (err error) {
-	ueventFp, err := os.Open(filepath.Join(dir, "uevent"))
+func fillUSBFromUevent(dev *Device) (err error) {
+	ueventFp, err := os.Open(dev.UEventFilePath)
 	if err != nil {
 		return
 	}
@@ -112,7 +113,12 @@ func usbs(ctx context.Context) ([]*Device, []error) {
 
 		dev := Device{}
 
-		err = fillUSBFromUevent(fullDir, &dev)
+		dev.UEventFilePath = filepath.Join(fullDir, "uevent")
+		if only := config.USBUeventPath(ctx); only != "" && only != dev.UEventFilePath {
+			continue
+		}
+
+		err = fillUSBFromUevent(&dev)
 		if err != nil {
 			errs = append(errs, err)
 		}

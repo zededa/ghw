@@ -16,19 +16,20 @@ import (
 )
 
 type Device struct {
-	Driver     string        `json:"driver"`
-	Type       string        `json:"type"`
-	VendorID   string        `json:"vendor_id"`
-	ProductID  string        `json:"product_id"`
-	Product    string        `json:"product"`
-	RevisionID string        `json:"revision_id"`
-	Interface  string        `json:"interface"`
-	Devnum     string        `json:"devnum"`
-	Parent     bus.BusParent `json:"parent,omitempty"`
-	Class      string        `json:"class"`
-	Subclass   string        `json:"subclass"`
-	Protocol   string        `json:"protocol"`
-	Controller string        `json:"controller,omitempty"`
+	Driver         string        `json:"driver"`
+	Type           string        `json:"type"`
+	VendorID       string        `json:"vendor_id"`
+	ProductID      string        `json:"product_id"`
+	Product        string        `json:"product"`
+	RevisionID     string        `json:"revision_id"`
+	Interface      string        `json:"interface"`
+	Devnum         string        `json:"devnum"`
+	Parent         bus.BusParent `json:"parent,omitempty"`
+	Class          string        `json:"class"`
+	Subclass       string        `json:"subclass"`
+	Protocol       string        `json:"protocol"`
+	Controller     string        `json:"controller,omitempty"`
+	UEventFilePath string
 	usbAddress.Address
 }
 

@@ -32,6 +32,7 @@ var (
 	topologyEnabledKey     = Key("ghw.topology.enabled")
 	pcidbKey               = Key("ghw.pcidb")
 	pathOverridesKey       = Key("ghw.path.overrides")
+	usbUeventPathKey       = Key("ghw.usb.uevent.path")
 )
 
 // Modifier sets some value on the context
@@ -167,6 +168,26 @@ func PathOverrides(ctx context.Context) map[string]string {
 	return nil
 }
 
+// WithUSBUeventPath limits USB discovery to the device whose sysfs uevent
+// file is at path.
+func WithUSBUeventPath(path string) Modifier {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, usbUeventPathKey, path)
+	}
+}
+
+// USBUeventPath returns the uevent file path USB discovery is limited to, or
+// "" for no limit.
+func USBUeventPath(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	if v := ctx.Value(usbUeventPathKey); v != nil {
+		return v.(string)
+	}
+	return ""
+}
+
 // ContextFromEnv returns a new context.Context populated from the environs or
 // default option values
 func ContextFromEnv() context.Context {
@@ -207,6 +228,9 @@ func fromOptions(ctx context.Context, opts *option.Options) context.Context {
 	}
 	if opts.PathOverrides != nil {
 		ctx = context.WithValue(ctx, pathOverridesKey, opts.PathOverrides)
+	}
+	if opts.USBUeventPath != "" {
+		ctx = context.WithValue(ctx, usbUeventPathKey, opts.USBUeventPath)
 	}
 	return ctx
 }

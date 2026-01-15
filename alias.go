@@ -41,6 +41,7 @@ var (
 	WithDisableTools    = config.WithDisableTools
 	WithDisableTopology = config.WithDisableTopology
 	WithPathOverrides   = config.WithPathOverrides
+	WithUSBUeventPath   = config.WithUSBUeventPath
 	WithLogLevel        = config.WithLogLevel
 	WithDebug           = config.WithDebug
 	WithLogger          = config.WithLogger
