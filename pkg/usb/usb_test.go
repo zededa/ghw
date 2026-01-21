@@ -45,7 +45,7 @@ MODALIAS=usb:v046ApA087d0101dc00dsc00dp00ic03isc01ip02in00
 	}
 
 	var d Device
-	err = fillUSBFromUevent(usbDir, &d)
+	err = fillUSBFromUevent(&d)
 	if err != nil {
 		t.Fatalf("could not fill USB info from uevent file: %v", err)
 	}
