@@ -289,6 +289,84 @@ func TestPCIMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+func TestFindPCIAddress(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			name:     "NIC on root complex",
+			path:     "/sys/devices/pci0000:00/0000:00:14.3",
+			expected: "0000:00:14.3",
+		},
+		{
+			name:     "NIC behind PCIe bridge",
+			path:     "/sys/devices/pci0000:00/0000:00:1c.0/0000:03:00.0",
+			expected: "0000:03:00.0",
+		},
+		{
+			name:     "USB device - returns USB controller",
+			path:     "/sys/devices/pci0000:00/0000:00:14.0/usb3/3-1/3-1.1",
+			expected: "0000:00:14.0",
+		},
+		{
+			name:     "CAN controller behind PCIe bridge",
+			path:     "/devices/pci0000:00/0000:00:1c.0/0000:03:00.0",
+			expected: "0000:03:00.0",
+		},
+		{
+			name:     "CAN controller on root complex",
+			path:     "/devices/pci0000:00/0000:00:1d.0",
+			expected: "0000:00:1d.0",
+		},
+		{
+			name:     "virtual device path - no PCI address",
+			path:     "/sys/devices/virtual/net/docker0",
+			expected: "",
+		},
+		{
+			name:     "empty path",
+			path:     "",
+			expected: "",
+		},
+		{
+			name:     "PCI bus directory only - no device",
+			path:     "/devices/pci0000:00/",
+			expected: "",
+		},
+		{
+			name:     "ARM platform bus - NIC behind bridge",
+			path:     "/devices/platform/4080000000.pcie/pci0001:00/0001:00:00.0/0001:01:00.0",
+			expected: "0001:01:00.0",
+		},
+		{
+			name:     "hex digits in domain and bus",
+			path:     "/sys/devices/pci000a:00/000a:8b:00.0",
+			expected: "000a:8b:00.0",
+		},
+		{
+			name:     "trailing path separator",
+			path:     "/sys/devices/pci0000:00/0000:00:1c.0/0000:03:00.0/",
+			expected: "0000:03:00.0",
+		},
+		{
+			name:     "uppercase hex digits are lowercased",
+			path:     "/sys/devices/pci0000:00/0000:00:1C.0/0000:03:00.0",
+			expected: "0000:03:00.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := pci.FindPCIAddress(tt.path)
+			if got != tt.expected {
+				t.Errorf("FindPCIAddress(%q) = %q, want %q", tt.path, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestPCIModaliasWithUpperCaseClassID(t *testing.T) {
 	if _, ok := os.LookupEnv("GHW_TESTING_SKIP_PCI"); ok {
 		t.Skip("Skipping PCI tests.")
