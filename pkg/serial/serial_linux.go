@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -36,20 +35,15 @@ func (i *Info) load(opts *option.Options) error {
 func serials(opts *option.Options) ([]*Device, []error) {
 	paths := linuxpath.New(opts)
 	ttyClass := paths.SysClassTty
-	ttys, err := filepath.Glob(filepath.Join(ttyClass, "ttyS*"))
+	entries, err := os.ReadDir(ttyClass)
 	if err != nil {
 		return nil, []error{err}
 	}
 
-	// Deterministic order: ttyS0, ttyS1, ...
-	sort.Slice(ttys, func(i, j int) bool {
-		return filepath.Base(ttys[i]) < filepath.Base(ttys[j])
-	})
-
 	var out []*Device
 	id := 1
-	for _, ttyDir := range ttys {
-		tty := filepath.Base(ttyDir) // ttyS1
+	for _, entry := range entries {
+		tty := entry.Name() // ttyS1
 		sp, ok, err := serialPortFromTTY(paths.SysRoot, ttyClass, tty)
 		if err != nil {
 			continue
