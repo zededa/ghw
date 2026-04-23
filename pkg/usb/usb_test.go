@@ -45,17 +45,21 @@ MODALIAS=usb:v046ApA087d0101dc00dsc00dp00ic03isc01ip02in00
 	}
 
 	var d Device
+	tmpDir := t.TempDir()
+	d.UEventFilePath = filepath.Join(tmpDir, "uevent")
+	os.WriteFile(d.UEventFilePath, []byte(data), 0o600)
 	err = fillUSBFromUevent(&d)
 	if err != nil {
 		t.Fatalf("could not fill USB info from uevent file: %v", err)
 	}
 
 	deviceExpected := Device{
-		Driver:     "usbhid",
-		Type:       "0/0/0",
-		VendorID:   "46a",
-		ProductID:  "a087",
-		RevisionID: "101",
+		Driver:         "usbhid",
+		Type:           "0/0/0",
+		VendorID:       "46a",
+		ProductID:      "a087",
+		RevisionID:     "101",
+		UEventFilePath: d.UEventFilePath,
 	}
 
 	if !reflect.DeepEqual(d, deviceExpected) {
