@@ -16,6 +16,7 @@ import (
 	"github.com/zededa/ghw/pkg/bus"
 	"github.com/zededa/ghw/pkg/linuxpath"
 	"github.com/zededa/ghw/pkg/option"
+	"github.com/zededa/ghw/pkg/pci"
 	pciAddress "github.com/zededa/ghw/pkg/pci/address"
 	"github.com/zededa/ghw/pkg/usb"
 	usbAddress "github.com/zededa/ghw/pkg/usb/address"
@@ -91,8 +92,9 @@ func serialPortFromTTY(sysfs, ttyClass, tty string) (*Device, bool, error) {
 		ioRange = fmt.Sprintf("%04x-%04x", start, end)
 	}
 
+	pciAddrString := pci.FindPCIAddress(devSys)
 	var parent bus.BusParent
-	if pciAddr := pciAddress.FromString(devSys); pciAddr != nil {
+	if pciAddr := pciAddress.FromString(pciAddrString); pciAddr != nil {
 		parent.PCI = pciAddr
 	}
 	bus, port, err := usb.ExtractUSBBusnumPort(devSys)
