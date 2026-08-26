@@ -161,18 +161,25 @@ func readUintDecimal(path string) (uint64, error) {
 	return strconv.ParseUint(s, 10, 64)
 }
 
+// readUintHex reads a hexadecimal sysfs attribute such as
+// /sys/class/tty/<tty>/port. It reports false when the attribute is missing,
+// malformed or zero, zero being unusable as a UART base address.
+//
+// The "0x" prefix the kernel emits has to be stripped before the value is
+// examined; checking the raw string against "0" first lets "0x0" through, where
+// it parses as a valid base address and yields a fabricated 0000-0007 range.
 func readUintHex(path string) (uint64, bool) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return 0, false
 	}
 	s := strings.TrimSpace(string(b))
-	if s == "" || s == "0" {
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "0x"), "0X")
+	if s == "" {
 		return 0, false
 	}
-	s = strings.TrimPrefix(s, "0x")
 	v, err := strconv.ParseUint(s, 16, 64)
-	if err != nil {
+	if err != nil || v == 0 {
 		return 0, false
 	}
 	return v, true
