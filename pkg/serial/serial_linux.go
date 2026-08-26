@@ -68,6 +68,10 @@ func serialPortFromTTY(sysfs, ttyClass, tty string) (*Device, bool, error) {
 		return nil, false, nil
 	}
 
+	if !uartIsPopulated(ttyDir) {
+		return nil, false, nil
+	}
+
 	irq, _ := readUintDecimal(filepath.Join(ttyDir, "irq"))
 	ioType, _ := readUintDecimal(filepath.Join(ttyDir, "io_type"))
 	portBase, portOK := readUintHex(filepath.Join(ttyDir, "port"))
@@ -119,6 +123,31 @@ func isIOPortUART(ioType uint64) bool {
 	return ioType == 0
 }
 
+// uartIsPopulated reports whether a hardware-backed tty corresponds to a UART
+// that is actually present on the board.
+//
+// Firmware routinely advertises more 8250 ports than are wired up - 32 is a
+// common count on x86 while only a handful exist. The kernel registers a tty
+// and a "device" symlink for every advertised port, so neither of those proves
+// the port is real. The "port" attribute does: the serial core exposes it for
+// each uart_port it manages, and an unpopulated port reads back 0x0 since it
+// has neither an I/O base nor a mapped address.
+//
+// A missing attribute means something different and must not be treated as
+// evidence of a phantom. A UART reached through a USB-to-serial converter
+// (ttyUSB*, ttyACM*) is driven by usbserial rather than the serial core and
+// exposes no "port" or "irq" attribute at all; such ports are real and have to
+// be reported. Note that "type" and "io_type" are no help in this decision - a
+// populated 8250 reports type 0 exactly like an unpopulated one does.
+func uartIsPopulated(ttyDir string) bool {
+	portPath := filepath.Join(ttyDir, "port")
+	if !statOK(portPath) {
+		return true
+	}
+	_, ok := readUintHex(portPath)
+	return ok
+}
+
 func findPCIDeviceDirFromResolvedDevice(sysfs, devSys string) (string, bool) {
 	addr := pciAddress.FromString(devSys)
 	if addr == nil {
@@ -161,18 +190,25 @@ func readUintDecimal(path string) (uint64, error) {
 	return strconv.ParseUint(s, 10, 64)
 }
 
+// readUintHex reads a hexadecimal sysfs attribute such as
+// /sys/class/tty/<tty>/port. It reports false when the attribute is missing,
+// malformed or zero, zero being unusable as a UART base address.
+//
+// The "0x" prefix the kernel emits has to be stripped before the value is
+// examined; checking the raw string against "0" first lets "0x0" through, where
+// it parses as a valid base address and yields a fabricated 0000-0007 range.
 func readUintHex(path string) (uint64, bool) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return 0, false
 	}
 	s := strings.TrimSpace(string(b))
-	if s == "" || s == "0" {
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "0x"), "0X")
+	if s == "" {
 		return 0, false
 	}
-	s = strings.TrimPrefix(s, "0x")
 	v, err := strconv.ParseUint(s, 16, 64)
-	if err != nil {
+	if err != nil || v == 0 {
 		return 0, false
 	}
 	return v, true
