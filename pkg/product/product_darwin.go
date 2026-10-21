@@ -16,9 +16,9 @@ import (
 
 	"howett.net/plist"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/internal/log"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/internal/log"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 type hardwareOverview struct {

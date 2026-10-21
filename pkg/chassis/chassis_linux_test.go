@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/chassis"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/chassis"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 // writeFiles writes name->content files (names may be nested subpaths) rooted at

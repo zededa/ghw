@@ -9,8 +9,8 @@ package tpm
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
 )
 
 // Device describes a single Trusted Platform Module (TPM) present on the host

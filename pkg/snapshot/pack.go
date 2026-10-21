@@ -16,7 +16,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jaypipes/ghw/internal/log"
+	"github.com/zededa/ghw/internal/log"
 )
 
 // PackFrom creates the snapshot named `snapshotName` from the

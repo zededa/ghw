@@ -12,11 +12,11 @@ import (
 
 	"github.com/jaypipes/pcidb"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/internal/log"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/topology"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/internal/log"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/topology"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 type Device struct {

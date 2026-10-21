@@ -11,8 +11,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/gpu"
-	"github.com/jaypipes/ghw/testdata"
+	"github.com/zededa/ghw/pkg/gpu"
+	"github.com/zededa/ghw/testdata"
 )
 
 func TestGPU(t *testing.T) {

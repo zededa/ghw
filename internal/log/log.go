@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jaypipes/ghw/internal/config"
+	"github.com/zededa/ghw/internal/config"
 )
 
 // Info outputs an INFO-level log message to the logger configured in the

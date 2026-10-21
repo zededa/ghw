@@ -10,8 +10,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/pci"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/pci"
 )
 
 func TestPCI(t *testing.T) {

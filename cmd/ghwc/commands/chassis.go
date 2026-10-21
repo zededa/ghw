@@ -9,8 +9,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw"
 	"github.com/spf13/cobra"
+	"github.com/zededa/ghw"
 )
 
 // chassisCmd represents the install command

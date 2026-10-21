@@ -9,10 +9,10 @@ package gpu
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/pci"
-	"github.com/jaypipes/ghw/pkg/topology"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/pci"
+	"github.com/zededa/ghw/pkg/topology"
 )
 
 type GraphicsCard struct {

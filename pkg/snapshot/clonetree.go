@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jaypipes/ghw/internal/log"
+	"github.com/zededa/ghw/internal/log"
 )
 
 // Attempting to tar up pseudofiles like /proc/cpuinfo is an exercise in

@@ -10,8 +10,8 @@ import (
 	"context"
 	"os"
 
-	"github.com/jaypipes/ghw/pkg/option"
 	"github.com/jaypipes/pcidb"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 const (

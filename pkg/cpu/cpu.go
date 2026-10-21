@@ -9,8 +9,8 @@ package cpu
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
 )
 
 // ProcessorCore describes a physical host processor core. A processor core is

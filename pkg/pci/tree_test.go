@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/pci"
+	"github.com/zededa/ghw/pkg/pci"
 )
 
 // buildTree assembles a small device tree shaped like:

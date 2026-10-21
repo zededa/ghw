@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/internal/log"
+	"github.com/zededa/ghw/internal/log"
 )
 
 const (

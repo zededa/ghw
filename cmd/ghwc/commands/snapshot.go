@@ -15,8 +15,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jaypipes/ghw/internal/log"
-	"github.com/jaypipes/ghw/pkg/snapshot"
+	"github.com/zededa/ghw/internal/log"
+	"github.com/zededa/ghw/pkg/snapshot"
 )
 
 var (

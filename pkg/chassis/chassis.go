@@ -7,9 +7,9 @@
 package chassis
 
 import (
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 var (

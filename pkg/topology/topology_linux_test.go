@@ -11,12 +11,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/memory"
-	"github.com/jaypipes/ghw/pkg/snapshot"
-	"github.com/jaypipes/ghw/pkg/topology"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/memory"
+	"github.com/zededa/ghw/pkg/snapshot"
+	"github.com/zededa/ghw/pkg/topology"
 
-	"github.com/jaypipes/ghw/testdata"
+	"github.com/zededa/ghw/testdata"
 )
 
 // nolint: gocyclo

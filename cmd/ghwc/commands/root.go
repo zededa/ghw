@@ -11,10 +11,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/snapshot"
 	"github.com/spf13/cobra"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/snapshot"
 )
 
 type optKey string
@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 
 Discover hardware information.
 
-https://github.com/jaypipes/ghw
+https://github.com/zededa/ghw
 `,
 	PersistentPreRunE: doPreRun,
 	RunE:              showAll,

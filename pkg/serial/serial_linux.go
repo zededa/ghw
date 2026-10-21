@@ -14,12 +14,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/bus"
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/pci"
-	pciAddress "github.com/jaypipes/ghw/pkg/pci/address"
-	"github.com/jaypipes/ghw/pkg/usb"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
+	"github.com/zededa/ghw/pkg/bus"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/pci"
+	pciAddress "github.com/zededa/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/pkg/usb"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
 )
 
 func (i *Info) load(ctx context.Context) error {

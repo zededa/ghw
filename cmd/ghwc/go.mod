@@ -1,4 +1,4 @@
-module github.com/jaypipes/ghw/cmd/ghwc
+module github.com/zededa/ghw/cmd/ghwc
 
 go 1.21
 

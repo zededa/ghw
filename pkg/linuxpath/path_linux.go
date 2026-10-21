@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/jaypipes/ghw/internal/config"
+	"github.com/zededa/ghw/internal/config"
 )
 
 // PathRoots holds the roots of all the filesystem subtrees

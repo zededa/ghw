@@ -15,7 +15,7 @@ import (
 
 	"howett.net/plist"
 
-	"github.com/jaypipes/ghw/internal/config"
+	"github.com/zededa/ghw/internal/config"
 )
 
 type diskOrPartitionPlistNode struct {

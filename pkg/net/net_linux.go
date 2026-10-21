@@ -15,13 +15,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/internal/log"
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/pci"
-	"github.com/jaypipes/ghw/pkg/usb"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/internal/log"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/pci"
+	"github.com/zededa/ghw/pkg/usb"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 const (

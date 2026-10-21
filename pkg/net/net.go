@@ -9,8 +9,8 @@ package net
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
 )
 
 // NICCapability is a feature/capability of a Network Interface Controller

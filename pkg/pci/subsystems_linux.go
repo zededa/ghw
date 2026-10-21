@@ -15,8 +15,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	pciaddr "github.com/jaypipes/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	pciaddr "github.com/zededa/ghw/pkg/pci/address"
 )
 
 // linuxSystemKinds is the set of Linux sysfs system directories that a

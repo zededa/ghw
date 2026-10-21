@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/watchdog"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/watchdog"
 )
 
 func TestWatchdogSysfs(t *testing.T) {

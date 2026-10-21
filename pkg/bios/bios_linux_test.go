@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/bios"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/bios"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 func deviceTreeChroot(t *testing.T, props map[string]string) string {

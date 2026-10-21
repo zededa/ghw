@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/linuxdt"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/linuxdt"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 // chrootWith creates a fake /sys/firmware/devicetree/base tree under a temp dir

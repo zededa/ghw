@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jaypipes/ghw/internal/log"
-	pciaddr "github.com/jaypipes/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/internal/log"
+	pciaddr "github.com/zededa/ghw/pkg/pci/address"
 )
 
 const (

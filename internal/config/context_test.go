@@ -10,8 +10,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 // TestContextFromArgsHonorsEnvChrootWithModifiers ensures that GHW_CHROOT is

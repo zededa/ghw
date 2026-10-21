@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/bus"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	usbAddress "github.com/jaypipes/ghw/pkg/usb/address"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/bus"
+	"github.com/zededa/ghw/pkg/marshal"
+	usbAddress "github.com/zededa/ghw/pkg/usb/address"
 )
 
 type Device struct {

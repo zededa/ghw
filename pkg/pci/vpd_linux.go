@@ -18,8 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	pciaddr "github.com/jaypipes/ghw/pkg/pci/address"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	pciaddr "github.com/zededa/ghw/pkg/pci/address"
 )
 
 // VPD is a parsed PCI Vital Product Data block. The format is defined in the

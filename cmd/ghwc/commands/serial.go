@@ -9,8 +9,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw"
 	"github.com/spf13/cobra"
+	"github.com/zededa/ghw"
 )
 
 // serialCmd represents the `serial` command

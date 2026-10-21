@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/tpm"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/tpm"
 )
 
 // makeTPMDir creates <root>/sys/class/tpm/<name> and returns its path.

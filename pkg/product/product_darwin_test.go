@@ -8,7 +8,7 @@ package product
 import (
 	"testing"
 
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 const ioregAppleSilicon = `<?xml version="1.0" encoding="UTF-8"?>

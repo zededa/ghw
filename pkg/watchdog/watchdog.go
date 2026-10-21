@@ -9,8 +9,8 @@ package watchdog
 import (
 	"fmt"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
 )
 
 // Info describes the hardware watchdog on the host system.

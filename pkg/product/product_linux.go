@@ -8,9 +8,9 @@ package product
 import (
 	"context"
 
-	"github.com/jaypipes/ghw/pkg/linuxdmi"
-	"github.com/jaypipes/ghw/pkg/linuxdt"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/pkg/linuxdmi"
+	"github.com/zededa/ghw/pkg/linuxdt"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 func (i *Info) load(ctx context.Context) error {

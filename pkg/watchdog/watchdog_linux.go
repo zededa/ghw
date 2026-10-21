@@ -10,7 +10,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/jaypipes/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/linuxpath"
 )
 
 func (i *Info) load(ctx context.Context) error {

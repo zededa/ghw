@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/jaypipes/ghw/internal/config"
-	"github.com/jaypipes/ghw/pkg/marshal"
-	"github.com/jaypipes/ghw/pkg/unitutil"
-	"github.com/jaypipes/ghw/pkg/util"
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/unitutil"
+	"github.com/zededa/ghw/pkg/util"
 )
 
 // Module describes a single physical memory module for a host system. Pretty

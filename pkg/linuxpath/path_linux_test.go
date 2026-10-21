@@ -16,10 +16,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/gpu"
-	"github.com/jaypipes/ghw/pkg/linuxpath"
-	"github.com/jaypipes/ghw/pkg/option"
+	"github.com/zededa/ghw"
+	"github.com/zededa/ghw/pkg/gpu"
+	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/option"
 )
 
 func TestPathRoot(t *testing.T) {
