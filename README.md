@@ -738,6 +738,10 @@ The `ghw.PCIDevice` struct has the following fields:
   information is not available. If the information is not available, this does
   not mean the device is not functioning, but rather that `ghw` was not able to
   retrieve driver information.
+* `ghw.PCIDevice.LocalCPUs` (Linux only) is an array of the logical processors
+  local to the device: those of the NUMA node its DMA and interrupts are local
+  to, or every CPU when the platform gives it no NUMA affinity. Nil when the
+  kernel does not report them.
 
 The `ghw.PCIAddress` (which is an alias for the `ghw.pci.address.Address`
 struct) contains the PCI address fields. It has a `ghw.PCIAddress.String()`
