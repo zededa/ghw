@@ -133,6 +133,15 @@ not be read is -1, and a frequency the kernel does not report is 0:
   same known `ProcessorID` and `CoreID` are SMT siblings
 * `cpu.LogicalProcessor.NodeID` is the NUMA node it belongs to; 0 on a kernel
   without NUMA
+* `cpu.LogicalProcessor.CoreType` is the class of core it runs on, a
+  `cpu.CoreType`: `cpu.CoreTypePerformance` or `cpu.CoreTypeEfficiency` on a
+  heterogeneous part (Intel P- and E-cores, ARM big.LITTLE),
+  `cpu.CoreTypeUniform` on a homogeneous one, or `cpu.CoreTypeUnknown` where the
+  host does not tell. Intel hybrid parts list their cores under the `cpu_core`,
+  `cpu_atom` and `cpu_lowpower` PMUs; elsewhere each CPU's `cpu_capacity` ranks
+  it, the highest capacity being a performance core. The ranking sees only
+  online CPUs and ranks by capacity alone, so on a part with three classes of
+  core the middle one reads as efficiency
 * `cpu.LogicalProcessor.BaseFrequencyKHz` is its base (non-turbo) frequency
 * `cpu.LogicalProcessor.MaxFrequencyKHz` is its maximum (turbo) frequency
 
