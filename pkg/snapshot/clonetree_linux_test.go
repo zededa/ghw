@@ -12,9 +12,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/zededa/ghw/internal/config"
+	"github.com/zededa/ghw/internal/sysfsfixture"
+	ghwcpu "github.com/zededa/ghw/pkg/cpu"
 	"github.com/zededa/ghw/pkg/snapshot"
 )
 
@@ -135,4 +139,65 @@ func includedInto(s string, items []string) bool {
 		}
 	}
 	return false
+}
+
+// A snapshot reproduces the CPU topology ghw reads from the host: online and
+// offline CPUs, packages, cores, NUMA nodes, frequencies, caches and core types.
+func TestCloneStaticContentCPUTopology(t *testing.T) {
+	cpu := func(id int, core string, siblings string) sysfsfixture.CPU {
+		return sysfsfixture.CPU{
+			ID: id, Package: "0", Core: core, Siblings: siblings,
+			BaseKHz: "2100000", MaxKHz: "4800000",
+			Caches: []sysfsfixture.Cache{
+				{Index: 0, Level: "1", Type: "Data", ID: core, Size: "48K", Shared: siblings},
+				{Index: 2, Level: "2", Type: "Unified", ID: "0", Size: "2048K", Shared: "0-3"},
+			},
+		}
+	}
+	hybrid := sysfsfixture.Tree{
+		CPUs: []sysfsfixture.CPU{
+			cpu(0, "0", "0-1"), cpu(1, "0", "0-1"), cpu(2, "8", "2"), cpu(3, "9", "3"),
+			{ID: 4, Offline: true},
+		},
+		Nodes:   map[int]string{0: "0-3"},
+		PMUCore: "0-1", PMUAtom: "2", PMULowPower: "3",
+	}
+	bigLittle := sysfsfixture.Tree{Nodes: map[int]string{0: "0-3"}}
+	for id, capacity := range []string{"1024", "1024", "446", "446"} {
+		c := cpu(id, strconv.Itoa(id), strconv.Itoa(id))
+		c.Capacity = capacity
+		bigLittle.CPUs = append(bigLittle.CPUs, c)
+	}
+	homogeneous := sysfsfixture.Tree{
+		CPUs:    []sysfsfixture.CPU{cpu(0, "0", "0-1"), cpu(1, "0", "0-1")},
+		CorePMU: true,
+	}
+	for name, tree := range map[string]sysfsfixture.Tree{
+		"Intel hybrid":    hybrid,
+		"big.LITTLE":      bigLittle,
+		"homogeneous x86": homogeneous,
+	} {
+		t.Run(name, func(t *testing.T) {
+			host := sysfsfixture.Write(t, tree)
+			var specs []string
+			for _, spec := range snapshot.ExpectedCloneStaticContent() {
+				specs = append(specs, filepath.Join(host, spec))
+			}
+			clone := t.TempDir()
+			if err := snapshot.CopyFilesInto(context.Background(), specs, clone, nil); err != nil {
+				t.Fatal(err)
+			}
+			want, err := ghwcpu.New(config.WithChroot(host))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := ghwcpu.New(config.WithChroot(filepath.Join(clone, host)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.JSONString(true) != want.JSONString(true) {
+				t.Errorf("from the snapshot:\n%s\nfrom the host:\n%s", got.JSONString(true), want.JSONString(true))
+			}
+		})
+	}
 }
