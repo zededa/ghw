@@ -77,39 +77,23 @@ func CachesForNode(ctx context.Context, nodeID int) ([]*Cache, error) {
 			if !strings.HasPrefix(cacheDirFileName, "index") {
 				continue
 			}
-			cacheIndex, _ := strconv.Atoi(cacheDirFileName[5:])
-
-			// The cache information is repeated for each node, so here, we
-			// just ensure that we only have a one Cache object for each
-			// unique combination of level, type and processor map
-			level := memoryCacheLevel(ctx, paths, nodeID, lpID, cacheIndex)
-			cacheType := memoryCacheType(ctx, paths, nodeID, lpID, cacheIndex)
-			cacheID := memoryCacheID(ctx, paths, nodeID, lpID, cacheIndex)
-
-			// Generate cache key for deduplication.
-			// Use cache ID if available (modern kernels), otherwise fall back
-			// to shared_cpu_map for older kernels. This ensures that caches
-			// shared across NUMA nodes (e.g., L3 in Sub-NUMA Clustering) are
-			// correctly merged into a single cache object.
-			var cacheKey string
-			if cacheID != -1 {
-				cacheKey = fmt.Sprintf("%d-%d-%d", level, cacheType, cacheID)
-			} else {
-				sharedCpuMap := memoryCacheSharedCPUMap(ctx, paths, nodeID, lpID, cacheIndex)
-				cacheKey = fmt.Sprintf("%d-%d-%s", level, cacheType, sharedCpuMap)
+			dir := filepath.Join(cachePath, cacheDirFileName)
+			c, err := readCacheIndex(dir)
+			if err != nil {
+				log.Warn(ctx, "cache %s: %s", dir, err)
+				continue
 			}
 
-			cache, exists := caches[cacheKey]
+			// The cache information is repeated for each logical processor
+			// sharing the cache, so keep one Cache object per instance. Keying
+			// by the kernel's cache ID also merges caches shared across NUMA
+			// nodes (e.g., L3 in Sub-NUMA Clustering) into one.
+			key := cacheKey(c, dir, lpID)
+			cache, exists := caches[key]
 			if !exists {
-				size := memoryCacheSize(ctx, paths, nodeID, lpID, level)
-				cache = &Cache{
-					Level:             uint8(level),
-					Type:              cacheType,
-					ID:                cacheID,
-					SizeBytes:         uint64(size) * uint64(unitutil.KB),
-					LogicalProcessors: make([]uint32, 0),
-				}
-				caches[cacheKey] = cache
+				c.LogicalProcessors = make([]uint32, 0)
+				cache = c
+				caches[key] = cache
 			}
 			cache.LogicalProcessors = append(
 				cache.LogicalProcessors,
@@ -130,100 +114,6 @@ func CachesForNode(ctx context.Context, nodeID int) ([]*Cache, error) {
 	return cacheVals, nil
 }
 
-func memoryCacheLevel(
-	ctx context.Context,
-	paths *linuxpath.Paths,
-	nodeID int,
-	lpID int,
-	cacheIndex int,
-) int {
-	levelPath := filepath.Join(
-		paths.NodeCPUCacheIndex(nodeID, lpID, cacheIndex),
-		"level",
-	)
-	levelContents, err := os.ReadFile(levelPath)
-	if err != nil {
-		log.Warn(ctx, "%s", err)
-		return -1
-	}
-	// levelContents is now a []byte with the last byte being a newline
-	// character. Trim that off and convert the contents to an integer.
-	level, err := strconv.Atoi(string(levelContents[:len(levelContents)-1]))
-	if err != nil {
-		log.Warn(ctx, "Unable to parse int from %s", levelContents)
-		return -1
-	}
-	return level
-}
-
-func memoryCacheID(
-	ctx context.Context,
-	paths *linuxpath.Paths,
-	nodeID int,
-	lpID int,
-	cacheIndex int,
-) int {
-	idPath := filepath.Join(
-		paths.NodeCPUCacheIndex(nodeID, lpID, cacheIndex),
-		"id",
-	)
-	idContents, err := os.ReadFile(idPath)
-	if err != nil {
-		// The id file may not exist in early kernel versions, so we don't warn
-		return -1
-	}
-	id, err := strconv.Atoi(string(idContents[:len(idContents)-1]))
-	if err != nil {
-		log.Warn(ctx, "Unable to parse int from %s", idContents)
-		return -1
-	}
-	return id
-}
-
-func memoryCacheSize(
-	ctx context.Context,
-	paths *linuxpath.Paths,
-	nodeID int,
-	lpID int,
-	cacheIndex int,
-) int {
-	sizePath := filepath.Join(
-		paths.NodeCPUCacheIndex(nodeID, lpID, cacheIndex),
-		"size",
-	)
-	sizeContents, err := os.ReadFile(sizePath)
-	if err != nil {
-		log.Warn(ctx, "%s", err)
-		return -1
-	}
-	// size comes as XK\n, so we trim off the K and the newline.
-	size, err := strconv.Atoi(string(sizeContents[:len(sizeContents)-2]))
-	if err != nil {
-		log.Warn(ctx, "Unable to parse int from %s", sizeContents)
-		return -1
-	}
-	return size
-}
-
-func memoryCacheType(
-	ctx context.Context,
-	paths *linuxpath.Paths,
-	nodeID int,
-	lpID int,
-	cacheIndex int,
-) CacheType {
-	typePath := filepath.Join(
-		paths.NodeCPUCacheIndex(nodeID, lpID, cacheIndex),
-		"type",
-	)
-	cacheTypeContents, err := os.ReadFile(typePath)
-	if err != nil {
-		log.Warn(ctx, "%s", err)
-		return CacheTypeUnified
-	}
-	return cacheTypeFromSysfs(string(cacheTypeContents))
-}
-
 // cacheTypeFromSysfs maps the content of a cache's sysfs "type" file.
 func cacheTypeFromSysfs(s string) CacheType {
 	switch strings.TrimSpace(s) {
@@ -234,25 +124,6 @@ func cacheTypeFromSysfs(s string) CacheType {
 	default:
 		return CacheTypeUnified
 	}
-}
-
-func memoryCacheSharedCPUMap(
-	ctx context.Context,
-	paths *linuxpath.Paths,
-	nodeID int,
-	lpID int,
-	cacheIndex int,
-) string {
-	scpuPath := filepath.Join(
-		paths.NodeCPUCacheIndex(nodeID, lpID, cacheIndex),
-		"shared_cpu_map",
-	)
-	sharedCpuMap, err := os.ReadFile(scpuPath)
-	if err != nil {
-		log.Warn(ctx, "%s", err)
-		return ""
-	}
-	return string(sharedCpuMap[:len(sharedCpuMap)-1])
 }
 
 // Caches returns every cache instance of the host's online logical processors,
