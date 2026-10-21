@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/jaypipes/pcidb"
@@ -295,6 +296,33 @@ func TestPCIMalformedModalias(t *testing.T) {
 	dev = info.ParseDevice("0000:00:01.0", "pci:v00008086d00005916sv000017AAsd0000224Bbc03sc00i00extrajunkextradataextraextra")
 	if dev == nil {
 		t.Fatalf("Failed to parse valid modalias with extra data")
+	}
+}
+
+// The dual-socket Xeon's devices behind 0000:05:00.0 and .1 are local to one
+// socket each; the others list every CPU.
+func TestPCIDeviceLocalCPUsXeon(t *testing.T) {
+	info := pciTestSetupXeon(t)
+	var socket0, socket1 []int
+	for cpu := 0; cpu < 24; cpu += 2 {
+		socket0, socket1 = append(socket0, cpu), append(socket1, cpu+1)
+	}
+	all := make([]int, 24)
+	for cpu := range all {
+		all[cpu] = cpu
+	}
+	for address, want := range map[string][]int{
+		"0000:05:00.0": socket0,
+		"0000:05:00.1": socket1,
+		"0000:00:1a.1": all,
+	} {
+		dev := info.GetDevice(address)
+		if dev == nil {
+			t.Fatalf("no device %s", address)
+		}
+		if !reflect.DeepEqual(dev.LocalCPUs, want) {
+			t.Errorf("%s LocalCPUs = %v, want %v", address, dev.LocalCPUs, want)
+		}
 	}
 }
 
