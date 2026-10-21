@@ -188,3 +188,56 @@ func TestHybridSnapshotCaches(t *testing.T) {
 		t.Error("no L2 shared by CPUs 8-11")
 	}
 }
+
+func cachesForNode(t *testing.T, root string, node int) []cacheSummary {
+	t.Helper()
+	got, err := memory.CachesForNode(config.ContextFromArgs(config.WithChroot(root)), node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return summarize(got)
+}
+
+// Each cache reports its own size: on the i7-1270P a P-core has a 48K L1d and
+// a 32K L1i, an E-core a 32K L1d and a 64K L1i.
+func TestCachesForNodeSizes(t *testing.T) {
+	dir, err := testdata.SnapshotsDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	if err := snapshot.UnpackInto(filepath.Join(dir, "linux-amd64-intel-i7-1270P.tar.gz"), root); err != nil {
+		t.Fatal(err)
+	}
+	want := map[[2]uint32]uint64{ // {CPU, type} -> size
+		{0, uint32(memory.CacheTypeData)}:        48 * 1024,
+		{0, uint32(memory.CacheTypeInstruction)}: 32 * 1024,
+		{8, uint32(memory.CacheTypeData)}:        32 * 1024,
+		{8, uint32(memory.CacheTypeInstruction)}: 64 * 1024,
+	}
+	for _, c := range cachesForNode(t, root, 0) {
+		if c.Level != 1 {
+			continue
+		}
+		for _, cpu := range c.CPUs {
+			if size, ok := want[[2]uint32{cpu, uint32(c.Type)}]; ok && c.Size != size {
+				t.Errorf("CPU %d L1 %v size = %d, want %d", cpu, c.Type, c.Size, size)
+			}
+		}
+	}
+}
+
+// A cache with kernel id 3 and one without an id whose CPU list reads "3" are
+// two caches.
+func TestCachesForNodeIDAndCPUListApart(t *testing.T) {
+	root := sysfsfixture.Write(t, sysfsfixture.Tree{
+		CPUs: []sysfsfixture.CPU{
+			{ID: 0, Caches: []sysfsfixture.Cache{{Index: 2, Level: "2", Type: "Unified", ID: "3", Size: "1024K", Shared: "0"}}},
+			{ID: 1, Caches: []sysfsfixture.Cache{{Index: 2, Level: "2", Type: "Unified", Size: "1024K", Shared: "3"}}},
+		},
+		Nodes: map[int]string{0: "0-1"},
+	})
+	if got := cachesForNode(t, root, 0); len(got) != 2 {
+		t.Errorf("CachesForNode = %v, want two L2 caches", got)
+	}
+}
