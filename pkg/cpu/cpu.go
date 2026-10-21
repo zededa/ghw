@@ -20,7 +20,8 @@ type ProcessorCore struct {
 	// ID is the `uint32` identifier that the host gave this core. Note that
 	// this does *not* necessarily equate to a zero-based index of the core
 	// within a physical package. For example, the core IDs for an Intel Core
-	// i7 are 0, 1, 2, 8, 9, and 10
+	// i7 are 0, 1, 2, 8, 9, and 10. It is -1 where the core cannot be told;
+	// each such core holds a single logical processor.
 	ID int `json:"id"`
 	// TotalHardwareThreads is the number of hardware threads associated with
 	// the core
