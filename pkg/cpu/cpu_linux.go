@@ -43,21 +43,19 @@ func (i *Info) load(ctx context.Context) error {
 	return nil
 }
 
-func processorsGet(ctx context.Context) []*Processor {
+// onlineLogicalProcessorIDs lists the online logical processors, in directory
+// order.
+func onlineLogicalProcessorIDs(ctx context.Context) []int {
 	paths := linuxpath.New(ctx)
-
-	lps := logicalProcessorsFromProcCPUInfo(ctx)
-	// keyed by processor ID (physical_package_id)
-	procs := map[int]*Processor{}
-
 	// /sys/devices/system/cpu pseudodir contains N number of pseudodirs with
 	// information about the logical processors on the host. These logical
 	// processor pseudodirs are of the pattern /sys/devices/system/cpu/cpu{N}
 	fnames, err := os.ReadDir(paths.SysDevicesSystemCPU)
 	if err != nil {
 		log.Warn(ctx, "failed to read /sys/devices/system/cpu: %s", err)
-		return []*Processor{}
+		return nil
 	}
+	var onlineLPs []int
 	for _, fname := range fnames {
 		matches := regexForCpulCore.FindStringSubmatch(fname.Name())
 		if len(matches) < 2 {
@@ -79,7 +77,20 @@ func processorsGet(ctx context.Context) []*Processor {
 			// Assume the CPU is online if the online state file doesn't exist
 			// (as is the case with older snapshots)
 		}
-		procID := processorIDFromLogicalProcessorID(ctx, lpID)
+		onlineLPs = append(onlineLPs, lpID)
+	}
+	return onlineLPs
+}
+
+func processorsGet(ctx context.Context) []*Processor {
+	lps := logicalProcessorsFromProcCPUInfo(ctx)
+	// keyed by processor ID (physical_package_id)
+	procs := map[int]*Processor{}
+
+	onlineLPs := onlineLogicalProcessorIDs(ctx)
+	procIDs, coreIDs := topologyOf(ctx, onlineLPs)
+	for _, lpID := range onlineLPs {
+		procID := procIDs[lpID]
 		proc, found := procs[procID]
 		if !found {
 			proc = &Processor{ID: procID}
@@ -138,8 +149,12 @@ func processorsGet(ctx context.Context) []*Processor {
 			procs[procID] = proc
 		}
 
-		coreID := coreIDFromLogicalProcessorID(ctx, lpID)
-		core := proc.CoreByID(coreID)
+		coreID := coreIDs[lpID]
+		var core *ProcessorCore
+		// An unknown core (-1) is not known to be shared: a core of its own.
+		if coreID != -1 {
+			core = proc.CoreByID(coreID)
+		}
 		if core == nil {
 			core = &ProcessorCore{
 				ID:                   coreID,
@@ -200,38 +215,74 @@ func coreIDFromLogicalProcessorID(ctx context.Context, lpID int) int {
 	return util.SafeIntFromFile(ctx, path)
 }
 
+// topologyOf returns the physical package and the core ID of each of the given
+// logical processors, the core ID unique within its package. The kernel's
+// core_id is that on x86, but an ARM device tree numbers cores per cluster, so
+// core_id repeats within a package for cores that are not SMT siblings. Where
+// one core_id covers more than one set of siblings (thread_siblings_list) in a
+// package, every core of that package is numbered by the lowest logical
+// processor among its siblings instead, and a logical processor whose siblings
+// cannot be read gets -1.
+func topologyOf(ctx context.Context, lpIDs []int) (procIDs, coreIDs map[int]int) {
+	paths := linuxpath.New(ctx)
+	type key struct{ proc, core int }
+	procIDs = make(map[int]int, len(lpIDs))
+	coreIDs = make(map[int]int, len(lpIDs))
+	firstSibling := map[int]int{}
+	siblingSets := map[key]map[int]bool{}
+	for _, lpID := range lpIDs {
+		procIDs[lpID] = processorIDFromLogicalProcessorID(ctx, lpID)
+		coreIDs[lpID] = coreIDFromLogicalProcessorID(ctx, lpID)
+		siblings, err := util.ReadCPUList(filepath.Join(paths.SysDevicesSystemCPU,
+			fmt.Sprintf("cpu%d", lpID), "topology", "thread_siblings_list"))
+		if err != nil || len(siblings) == 0 {
+			continue
+		}
+		first := siblings[0]
+		for _, s := range siblings {
+			first = min(first, s)
+		}
+		firstSibling[lpID] = first
+		k := key{procIDs[lpID], coreIDs[lpID]}
+		if siblingSets[k] == nil {
+			siblingSets[k] = map[int]bool{}
+		}
+		siblingSets[k][first] = true
+	}
+	clustered := map[int]bool{}
+	for k, sets := range siblingSets {
+		if len(sets) > 1 {
+			clustered[k.proc] = true
+		}
+	}
+	for _, lpID := range lpIDs {
+		if !clustered[procIDs[lpID]] {
+			continue
+		}
+		if first, ok := firstSibling[lpID]; ok {
+			coreIDs[lpID] = first
+		} else {
+			coreIDs[lpID] = -1
+		}
+	}
+	return procIDs, coreIDs
+}
+
 func CoresForNode(ctx context.Context, nodeID int) ([]*ProcessorCore, error) {
 	// The /sys/devices/system/node/nodeX directory contains a subdirectory
-	// called 'cpuX' for each logical processor assigned to the node. Each of
-	// those subdirectories contains a topology subdirectory which has a
-	// core_id file that indicates the 0-based identifier of the physical core
-	// the logical processor (hardware thread) is on.
+	// called 'cpuX' for each logical processor assigned to the node. Cores are
+	// identified as for Info: see topologyOf.
 	paths := linuxpath.New(ctx)
 	path := filepath.Join(
 		paths.SysDevicesSystemNode,
 		fmt.Sprintf("node%d", nodeID),
 	)
-	cores := make([]*ProcessorCore, 0)
-
-	findCoreByID := func(coreID int) *ProcessorCore {
-		for _, c := range cores {
-			if c.ID == coreID {
-				return c
-			}
-		}
-
-		c := &ProcessorCore{
-			ID:                coreID,
-			LogicalProcessors: []int{},
-		}
-		cores = append(cores, c)
-		return c
-	}
 
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
+	var lpIDs []int
 	for _, file := range files {
 		filename := file.Name()
 		if !strings.HasPrefix(filename, "cpu") {
@@ -246,7 +297,7 @@ func CoresForNode(ctx context.Context, nodeID int) ([]*ProcessorCore, error) {
 		// Grab the logical processor ID by cutting the integer from the
 		// /sys/devices/system/node/nodeX/cpuX filename
 		cpuPath := filepath.Join(path, filename)
-		procID, err := strconv.Atoi(filename[3:])
+		lpID, err := strconv.Atoi(filename[3:])
 		if err != nil {
 			log.Warn(ctx,
 				"failed to determine procID from %s. Expected integer after 3rd char.",
@@ -263,13 +314,31 @@ func CoresForNode(ctx context.Context, nodeID int) ([]*ProcessorCore, error) {
 			// Assume the CPU is online if the online state file doesn't exist
 			// (as is the case with older snapshots)
 		}
-		coreIDPath := filepath.Join(cpuPath, "topology", "core_id")
-		coreID := util.SafeIntFromFile(ctx, coreIDPath)
-		core := findCoreByID(coreID)
-		core.LogicalProcessors = append(
-			core.LogicalProcessors,
-			procID,
-		)
+		lpIDs = append(lpIDs, lpID)
+	}
+
+	// A node can hold more than one package, so a core is a package and a
+	// core ID. Whether a package is clustered depends on all its CPUs, not
+	// only the node's, or the node's cores would be numbered unlike Info's.
+	procIDs, coreIDs := topologyOf(ctx, onlineLogicalProcessorIDs(ctx))
+	type key struct{ proc, core int }
+	byKey := map[key]*ProcessorCore{}
+	cores := make([]*ProcessorCore, 0)
+	for _, lpID := range lpIDs {
+		k := key{procIDs[lpID], coreIDs[lpID]}
+		core, ok := byKey[k]
+		if !ok {
+			core = &ProcessorCore{
+				ID:                k.core,
+				LogicalProcessors: []int{},
+			}
+			// As in Info, an unknown core is a core of its own.
+			if k.core != -1 {
+				byKey[k] = core
+			}
+			cores = append(cores, core)
+		}
+		core.LogicalProcessors = append(core.LogicalProcessors, lpID)
 	}
 
 	for _, c := range cores {

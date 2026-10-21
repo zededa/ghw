@@ -101,7 +101,8 @@ A `ghw.ProcessorCore` has the following fields:
 * `ghw.ProcessorCore.ID` is the `uint32` identifier that the host gave this
   core. Note that this does *not* necessarily equate to a zero-based index of
   the core within a physical package. For example, the core IDs for an Intel Core
-  i7 are 0, 1, 2, 8, 9, and 10
+  i7 are 0, 1, 2, 8, 9, and 10. On Linux it is -1 where the core cannot be told,
+  and each such core holds a single logical processor
 * `ghw.ProcessorCore.TotalHardwareThreads` is the number of hardware threads
   associated with the core
 * `ghw.ProcessorCore.LogicalProcessors` is an array of ints representing the
