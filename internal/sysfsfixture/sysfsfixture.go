@@ -52,10 +52,11 @@ type Tree struct {
 	// Nodes maps a NUMA node to its cpulist. Nil means no node directory at
 	// all, as on a kernel without NUMA.
 	Nodes map[int]string
-	// PMUCore and PMUAtom are the cpus files of the Intel hybrid core PMUs;
-	// empty means the PMU is absent.
-	PMUCore string
-	PMUAtom string
+	// PMUCore, PMUAtom and PMULowPower are the cpus files of the Intel hybrid
+	// core PMUs; empty means the PMU is absent.
+	PMUCore     string
+	PMUAtom     string
+	PMULowPower string
 	// CorePMU creates /sys/devices/cpu, the core PMU of a homogeneous part.
 	CorePMU bool
 }
@@ -138,6 +139,7 @@ func Write(t testing.TB, tree Tree) string {
 	}
 	optional("sys/devices/cpu_core/cpus", tree.PMUCore)
 	optional("sys/devices/cpu_atom/cpus", tree.PMUAtom)
+	optional("sys/devices/cpu_lowpower/cpus", tree.PMULowPower)
 	if tree.CorePMU {
 		write("sys/devices/cpu/type", "4")
 	}

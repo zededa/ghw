@@ -535,6 +535,57 @@ func TestSnapshotProcessorsUnchanged(t *testing.T) {
 	}
 }
 
+func coreTypes(t *testing.T, tree sysfsfixture.Tree) []cpu.CoreType {
+	t.Helper()
+	var types []cpu.CoreType
+	for _, lp := range logicalProcessors(t, tree).LogicalProcessors {
+		types = append(types, lp.CoreType)
+	}
+	return types
+}
+
+func fourCPUs(capacities ...string) sysfsfixture.Tree {
+	tree := twoSocketTree()
+	tree.CPUs = tree.CPUs[:4]
+	for i, c := range capacities {
+		tree.CPUs[i].Capacity = c
+	}
+	return tree
+}
+
+func TestCoreType(t *testing.T) {
+	P, E, U, X := cpu.CoreTypePerformance, cpu.CoreTypeEfficiency, cpu.CoreTypeUniform, cpu.CoreTypeUnknown
+	hybrid := fourCPUs()
+	hybrid.PMUCore, hybrid.PMUAtom = "0-1", "2"
+	pmuOnly := fourCPUs()
+	pmuOnly.CorePMU = true
+	partialPMU := fourCPUs("1024")
+	partialPMU.CorePMU = true
+	lowPower := fourCPUs()
+	lowPower.PMUCore, lowPower.PMULowPower = "0-1", "2-3"
+	for name, tc := range map[string]struct {
+		tree sysfsfixture.Tree
+		want []cpu.CoreType
+	}{
+		// CPU 3 is in neither list: not guessed.
+		"Intel hybrid PMUs":   {hybrid, []cpu.CoreType{P, P, E, X}},
+		"Intel low-power":     {lowPower, []cpu.CoreType{P, P, E, E}},
+		"big.LITTLE capacity": {fourCPUs("1024", "1024", "446", "446"), []cpu.CoreType{P, P, E, E}},
+		"uniform capacity":    {fourCPUs("1024", "1024", "1024", "1024"), []cpu.CoreType{U, U, U, U}},
+		"core PMU only":       {pmuOnly, []cpu.CoreType{U, U, U, U}},
+		"nothing to tell":     {fourCPUs(), []cpu.CoreType{X, X, X, X}},
+		"partial capacity":    {fourCPUs("1024"), []cpu.CoreType{X, X, X, X}},
+		// Some CPUs report a capacity: the core PMU does not make them uniform.
+		"partial capacity with core PMU": {partialPMU, []cpu.CoreType{X, X, X, X}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := coreTypes(t, tc.tree); !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("core types = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 // legacyProcessors groups the online CPUs of a sysfs cpu directory by their
 // raw (physical_package_id, core_id), cores in directory order, as ghw did
 // before.
@@ -587,4 +638,15 @@ func legacyProcessors(t *testing.T, cpuDir string) map[int][][2]any {
 		}
 	}
 	return out
+}
+
+func TestCoreTypeJSON(t *testing.T) {
+	data, err := json.Marshal(cpu.CoreTypeEfficiency)
+	if err != nil || string(data) != `"efficiency"` {
+		t.Fatalf("json.Marshal(CoreTypeEfficiency) = %s, %v", data, err)
+	}
+	var back cpu.CoreType
+	if err := json.Unmarshal(data, &back); err != nil || back != cpu.CoreTypeEfficiency {
+		t.Errorf("json.Unmarshal(%s) = %v, %v", data, back, err)
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -510,6 +511,7 @@ func logicalProcessorsFromProcCPUInfo(
 func logicalProcessorsGet(ctx context.Context, lpIDs []int, procIDs, coreIDs map[int]int) []*LogicalProcessor {
 	paths := linuxpath.New(ctx)
 	nodeOf := nodesOf(ctx)
+	types := coreTypesOf(ctx, lpIDs)
 	lps := make([]*LogicalProcessor, 0, len(lpIDs))
 	for _, id := range lpIDs {
 		dir := filepath.Join(paths.SysDevicesSystemCPU, fmt.Sprintf("cpu%d", id))
@@ -518,6 +520,7 @@ func logicalProcessorsGet(ctx context.Context, lpIDs []int, procIDs, coreIDs map
 			ProcessorID: procIDs[id],
 			CoreID:      coreIDs[id],
 			NodeID:      -1,
+			CoreType:    types[id],
 		}
 		// A frequency the kernel does not report stays 0.
 		if khz, err := util.ReadInt(filepath.Join(dir, "cpufreq", "base_frequency")); err == nil && khz > 0 {
@@ -565,4 +568,78 @@ func nodesOf(ctx context.Context) map[int]int {
 		}
 	}
 	return nodeOf
+}
+
+// coreTypesOf tells each logical processor's core type. Intel hybrid parts list
+// their performance cores under the cpu_core PMU and their efficiency cores
+// under cpu_atom and, for the low-power ones, cpu_lowpower. Elsewhere, ARM
+// big.LITTLE among them, cpu_capacity ranks the logical processors: the highest
+// capacity is a performance core, any lower an efficiency core, and one
+// capacity for all of them a homogeneous part (x86 reports 1024 for every CPU
+// of a homogeneous part since Linux 6.16). Before that, a homogeneous x86 part
+// is told by its single core PMU, /sys/devices/cpu. When none of these tells,
+// or only some CPUs report a capacity, the type is unknown, never guessed.
+//
+// The ranking sees only the online CPUs: with every big core offline, the
+// LITTLE ones read as performance or uniform. And it ranks by capacity alone,
+// so on a part with three classes of core (prime, big, LITTLE) the middle one
+// reads as efficiency.
+func coreTypesOf(ctx context.Context, lpIDs []int) map[int]CoreType {
+	paths := linuxpath.New(ctx)
+	devices := filepath.Join(paths.SysRoot, "devices")
+	types := map[int]CoreType{}
+
+	var hybrid bool
+	for pmu, coreType := range map[string]CoreType{
+		"cpu_core":     CoreTypePerformance,
+		"cpu_atom":     CoreTypeEfficiency,
+		"cpu_lowpower": CoreTypeEfficiency,
+	} {
+		cpus, err := util.ReadCPUList(filepath.Join(devices, pmu, "cpus"))
+		if err != nil {
+			continue
+		}
+		hybrid = true
+		for _, id := range cpus {
+			types[id] = coreType
+		}
+	}
+	if hybrid {
+		return types
+	}
+
+	capacities := map[int]int{}
+	for _, id := range lpIDs {
+		capacity, err := util.ReadInt(filepath.Join(paths.SysDevicesSystemCPU, fmt.Sprintf("cpu%d", id), "cpu_capacity"))
+		if err == nil {
+			capacities[id] = capacity
+		}
+	}
+	if len(capacities) > 0 && len(capacities) < len(lpIDs) {
+		return types
+	}
+	if len(capacities) > 0 {
+		lowest, highest := math.MaxInt, math.MinInt
+		for _, capacity := range capacities {
+			lowest, highest = min(lowest, capacity), max(highest, capacity)
+		}
+		for id, capacity := range capacities {
+			switch {
+			case lowest == highest:
+				types[id] = CoreTypeUniform
+			case capacity == highest:
+				types[id] = CoreTypePerformance
+			default:
+				types[id] = CoreTypeEfficiency
+			}
+		}
+		return types
+	}
+
+	if fi, err := os.Stat(filepath.Join(devices, "cpu")); err == nil && fi.IsDir() {
+		for _, id := range lpIDs {
+			types[id] = CoreTypeUniform
+		}
+	}
+	return types
 }

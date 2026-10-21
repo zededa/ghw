@@ -7,7 +7,10 @@
 package cpu
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/zededa/ghw/internal/config"
 	"github.com/zededa/ghw/pkg/marshal"
@@ -164,6 +167,8 @@ type LogicalProcessor struct {
 	CoreID int `json:"core_id"`
 	// NodeID is the NUMA node it belongs to; 0 on a kernel without NUMA.
 	NodeID int `json:"node_id"`
+	// CoreType is the class of core it runs on.
+	CoreType CoreType `json:"core_type"`
 	// BaseFrequencyKHz is its base (non-turbo) frequency.
 	BaseFrequencyKHz uint64 `json:"base_frequency_khz,omitempty"`
 	// MaxFrequencyKHz is its maximum (turbo) frequency.
@@ -222,4 +227,60 @@ func (i *Info) YAMLString() string {
 // under a top-level "cpu:" key
 func (i *Info) JSONString(indent bool) string {
 	return marshal.SafeJSON(cpuPrinter{i}, indent)
+}
+
+// CoreType is the class of core a logical processor runs on.
+type CoreType int
+
+const (
+	// CoreTypeUnknown means the host does not tell the class of the core.
+	CoreTypeUnknown CoreType = iota
+	// CoreTypePerformance is a performance core of a heterogeneous part, such
+	// as an Intel P-core or an ARM "big" core.
+	CoreTypePerformance
+	// CoreTypeEfficiency is an efficiency core of a heterogeneous part, such
+	// as an Intel E-core or an ARM "LITTLE" core.
+	CoreTypeEfficiency
+	// CoreTypeUniform is a core of a homogeneous part, where every core is of
+	// the same class.
+	CoreTypeUniform
+)
+
+var (
+	coreTypeString = map[CoreType]string{
+		CoreTypeUnknown:     "unknown",
+		CoreTypePerformance: "performance",
+		CoreTypeEfficiency:  "efficiency",
+		CoreTypeUniform:     "uniform",
+	}
+	stringCoreType = map[string]CoreType{
+		"unknown":     CoreTypeUnknown,
+		"performance": CoreTypePerformance,
+		"efficiency":  CoreTypeEfficiency,
+		"uniform":     CoreTypeUniform,
+	}
+)
+
+// String returns the core type's name, as it appears in JSON and YAML.
+func (t CoreType) String() string {
+	return coreTypeString[t]
+}
+
+// MarshalJSON writes the core type as its name.
+func (t CoreType) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(t.String())), nil
+}
+
+// UnmarshalJSON reads a core type from its name.
+func (t *CoreType) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	val, ok := stringCoreType[strings.ToLower(s)]
+	if !ok {
+		return fmt.Errorf("unknown core type: %q", s)
+	}
+	*t = val
+	return nil
 }
