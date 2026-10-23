@@ -80,6 +80,15 @@ information about the CPUs on the host system.
   the host system contains
 * `ghw.CPUInfo.Processors` is an array of `ghw.Processor` structs, one for each
   physical processor package contained in the host
+* `ghw.CPUInfo.LogicalProcessors` (Linux only) is an array of pointers to
+  `cpu.LogicalProcessor` structs, one for each online logical processor,
+  ascending by ID
+* `ghw.CPUInfo.OfflineLogicalProcessors` (Linux only) is an array of the IDs of
+  the logical processors that are present but offline (for example with SMT
+  turned off), ascending
+* `ghw.CPUInfo.Caches` (Linux only) is an array of pointers to
+  `ghw.MemoryCache` structs, one for each cache instance of the online logical
+  processors, with the logical processors sharing it
 
 Each `ghw.Processor` struct contains a number of fields:
 
@@ -110,6 +119,22 @@ A `ghw.ProcessorCore` has the following fields:
   sometimes called the "thread siblings". Logical processor IDs are the
   *zero-based* index of the processor on the host and are *not* related to the
   core ID.
+
+A `cpu.LogicalProcessor` (Linux only) describes one online logical processor
+(hardware thread) and where it sits in the host's topology. An ID that could
+not be read is -1, and a frequency the kernel does not report is 0:
+
+* `cpu.LogicalProcessor.ID` is the logical processor ID the kernel and CPU
+  affinities use
+* `cpu.LogicalProcessor.ProcessorID` is the physical package (socket) it
+  belongs to: the ID of its `ghw.Processor`
+* `cpu.LogicalProcessor.CoreID` is the physical core it runs on: the ID of its
+  `ghw.ProcessorCore`, unique within the package. Logical processors with the
+  same known `ProcessorID` and `CoreID` are SMT siblings
+* `cpu.LogicalProcessor.NodeID` is the NUMA node it belongs to; 0 on a kernel
+  without NUMA
+* `cpu.LogicalProcessor.BaseFrequencyKHz` is its base (non-turbo) frequency
+* `cpu.LogicalProcessor.MaxFrequencyKHz` is its maximum (turbo) frequency
 
 ```go
 package main
