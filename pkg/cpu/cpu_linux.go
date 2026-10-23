@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/zededa/ghw/internal/log"
 	"github.com/zededa/ghw/pkg/linuxdt"
 	"github.com/zededa/ghw/pkg/linuxpath"
+	"github.com/zededa/ghw/pkg/memory"
 	"github.com/zededa/ghw/pkg/util"
 )
 
@@ -29,7 +31,9 @@ var (
 )
 
 func (i *Info) load(ctx context.Context) error {
-	i.Processors = processorsGet(ctx)
+	online, offline := logicalProcessorIDs(ctx)
+	procIDs, coreIDs := topologyOf(ctx, online)
+	i.Processors = processorsGet(ctx, online, procIDs, coreIDs)
 	var totCores uint32
 	var totThreads uint32
 	for _, p := range i.Processors {
@@ -40,12 +44,21 @@ func (i *Info) load(ctx context.Context) error {
 	i.TotalHardwareThreads = totThreads
 	// TODO(jaypipes): Remove TotalThreads before v1.0
 	i.TotalThreads = totThreads
+	ascending := slices.Clone(online)
+	slices.Sort(ascending)
+	i.LogicalProcessors = logicalProcessorsGet(ctx, ascending, procIDs, coreIDs)
+	i.OfflineLogicalProcessors = offline
+	caches, err := memory.Caches(ctx)
+	if err != nil {
+		log.Warn(ctx, "failed to read CPU caches: %s", err)
+	}
+	i.Caches = caches
 	return nil
 }
 
-// onlineLogicalProcessorIDs lists the online logical processors, in directory
-// order.
-func onlineLogicalProcessorIDs(ctx context.Context) []int {
+// logicalProcessorIDs returns the IDs of the online logical processors, in the
+// order /sys/devices/system/cpu lists them, and of the offline ones, ascending.
+func logicalProcessorIDs(ctx context.Context) (online, offline []int) {
 	paths := linuxpath.New(ctx)
 	// /sys/devices/system/cpu pseudodir contains N number of pseudodirs with
 	// information about the logical processors on the host. These logical
@@ -53,9 +66,8 @@ func onlineLogicalProcessorIDs(ctx context.Context) []int {
 	fnames, err := os.ReadDir(paths.SysDevicesSystemCPU)
 	if err != nil {
 		log.Warn(ctx, "failed to read /sys/devices/system/cpu: %s", err)
-		return nil
+		return nil, nil
 	}
-	var onlineLPs []int
 	for _, fname := range fnames {
 		matches := regexForCpulCore.FindStringSubmatch(fname.Name())
 		if len(matches) < 2 {
@@ -71,24 +83,24 @@ func onlineLogicalProcessorIDs(ctx context.Context) []int {
 		onlineFilePath := filepath.Join(paths.SysDevicesSystemCPU, fmt.Sprintf("cpu%d", lpID), onlineFile)
 		if _, err := os.Stat(onlineFilePath); err == nil {
 			if util.SafeIntFromFile(ctx, onlineFilePath) == 0 {
+				offline = append(offline, lpID)
 				continue
 			}
 		} else if errors.Is(err, os.ErrNotExist) {
 			// Assume the CPU is online if the online state file doesn't exist
 			// (as is the case with older snapshots)
 		}
-		onlineLPs = append(onlineLPs, lpID)
+		online = append(online, lpID)
 	}
-	return onlineLPs
+	sort.Ints(offline)
+	return online, offline
 }
 
-func processorsGet(ctx context.Context) []*Processor {
+func processorsGet(ctx context.Context, onlineLPs []int, procIDs, coreIDs map[int]int) []*Processor {
 	lps := logicalProcessorsFromProcCPUInfo(ctx)
 	// keyed by processor ID (physical_package_id)
 	procs := map[int]*Processor{}
 
-	onlineLPs := onlineLogicalProcessorIDs(ctx)
-	procIDs, coreIDs := topologyOf(ctx, onlineLPs)
 	for _, lpID := range onlineLPs {
 		procID := procIDs[lpID]
 		proc, found := procs[procID]
@@ -189,19 +201,6 @@ func processorsGet(ctx context.Context) []*Processor {
 	return res
 }
 
-// processorIDFromLogicalProcessorID returns the processor physical package ID
-// for the supplied logical processor ID
-func processorIDFromLogicalProcessorID(ctx context.Context, lpID int) int {
-	paths := linuxpath.New(ctx)
-	// Fetch CPU ID
-	path := filepath.Join(
-		paths.SysDevicesSystemCPU,
-		fmt.Sprintf("cpu%d", lpID),
-		"topology", "physical_package_id",
-	)
-	return util.SafeIntFromFile(ctx, path)
-}
-
 // coreIDFromLogicalProcessorID returns the core ID for the supplied logical
 // processor ID
 func coreIDFromLogicalProcessorID(ctx context.Context, lpID int) int {
@@ -229,25 +228,42 @@ func topologyOf(ctx context.Context, lpIDs []int) (procIDs, coreIDs map[int]int)
 	procIDs = make(map[int]int, len(lpIDs))
 	coreIDs = make(map[int]int, len(lpIDs))
 	firstSibling := map[int]int{}
-	siblingSets := map[key]map[int]bool{}
+	allMinusOne := len(lpIDs) > 0
 	for _, lpID := range lpIDs {
-		procIDs[lpID] = processorIDFromLogicalProcessorID(ctx, lpID)
+		procIDs[lpID] = -1
+		pkgPath := filepath.Join(paths.SysDevicesSystemCPU, fmt.Sprintf("cpu%d", lpID),
+			"topology", "physical_package_id")
+		if pkg, err := util.ReadInt(pkgPath); err != nil {
+			log.Warn(ctx, "failed to read the package of logical processor %d: %s", lpID, err)
+			allMinusOne = false
+		} else {
+			procIDs[lpID] = pkg
+			allMinusOne = allMinusOne && pkg == -1
+		}
 		coreIDs[lpID] = coreIDFromLogicalProcessorID(ctx, lpID)
 		siblings, err := util.ReadCPUList(filepath.Join(paths.SysDevicesSystemCPU,
 			fmt.Sprintf("cpu%d", lpID), "topology", "thread_siblings_list"))
 		if err != nil || len(siblings) == 0 {
 			continue
 		}
-		first := siblings[0]
-		for _, s := range siblings {
-			first = min(first, s)
+		firstSibling[lpID] = slices.Min(siblings)
+	}
+	// physical_package_id -1 from every CPU is the kernel saying it has no
+	// package information: one package. Next to CPUs with a real package it
+	// is unknown.
+	if allMinusOne {
+		for _, lpID := range lpIDs {
+			procIDs[lpID] = 0
 		}
-		firstSibling[lpID] = first
+	}
+	// Clusters are found per package, so only once the package IDs are final.
+	siblingSets := map[key]map[int]struct{}{}
+	for lpID, first := range firstSibling {
 		k := key{procIDs[lpID], coreIDs[lpID]}
 		if siblingSets[k] == nil {
-			siblingSets[k] = map[int]bool{}
+			siblingSets[k] = map[int]struct{}{}
 		}
-		siblingSets[k][first] = true
+		siblingSets[k][first] = struct{}{}
 	}
 	clustered := map[int]bool{}
 	for k, sets := range siblingSets {
@@ -320,7 +336,8 @@ func CoresForNode(ctx context.Context, nodeID int) ([]*ProcessorCore, error) {
 	// A node can hold more than one package, so a core is a package and a
 	// core ID. Whether a package is clustered depends on all its CPUs, not
 	// only the node's, or the node's cores would be numbered unlike Info's.
-	procIDs, coreIDs := topologyOf(ctx, onlineLogicalProcessorIDs(ctx))
+	online, _ := logicalProcessorIDs(ctx)
+	procIDs, coreIDs := topologyOf(ctx, online)
 	type key struct{ proc, core int }
 	byKey := map[key]*ProcessorCore{}
 	cores := make([]*ProcessorCore, 0)
@@ -487,4 +504,65 @@ func logicalProcessorsFromProcCPUInfo(
 		}
 	}
 	return lps
+}
+
+// logicalProcessorsGet describes each of the given online logical processors.
+func logicalProcessorsGet(ctx context.Context, lpIDs []int, procIDs, coreIDs map[int]int) []*LogicalProcessor {
+	paths := linuxpath.New(ctx)
+	nodeOf := nodesOf(ctx)
+	lps := make([]*LogicalProcessor, 0, len(lpIDs))
+	for _, id := range lpIDs {
+		dir := filepath.Join(paths.SysDevicesSystemCPU, fmt.Sprintf("cpu%d", id))
+		lp := &LogicalProcessor{
+			ID:          id,
+			ProcessorID: procIDs[id],
+			CoreID:      coreIDs[id],
+			NodeID:      -1,
+		}
+		// A frequency the kernel does not report stays 0.
+		if khz, err := util.ReadInt(filepath.Join(dir, "cpufreq", "base_frequency")); err == nil && khz > 0 {
+			lp.BaseFrequencyKHz = uint64(khz)
+		}
+		if khz, err := util.ReadInt(filepath.Join(dir, "cpufreq", "cpuinfo_max_freq")); err == nil && khz > 0 {
+			lp.MaxFrequencyKHz = uint64(khz)
+		}
+		if nodeOf == nil {
+			lp.NodeID = 0
+		} else if node, ok := nodeOf[id]; ok {
+			lp.NodeID = node
+		}
+		lps = append(lps, lp)
+	}
+	return lps
+}
+
+// nodesOf maps each logical processor to its NUMA node, from the nodes'
+// cpulist files. It is nil when the kernel has no NUMA support (no node
+// directory); a logical processor no node lists is missing from the map.
+func nodesOf(ctx context.Context) map[int]int {
+	paths := linuxpath.New(ctx)
+	entries, err := os.ReadDir(paths.SysDevicesSystemNode)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			log.Warn(ctx, "failed to read %s: %s", paths.SysDevicesSystemNode, err)
+			return map[int]int{}
+		}
+		return nil
+	}
+	nodeOf := map[int]int{}
+	for _, entry := range entries {
+		node, err := strconv.Atoi(strings.TrimPrefix(entry.Name(), "node"))
+		if err != nil || !strings.HasPrefix(entry.Name(), "node") {
+			continue
+		}
+		cpus, err := util.ReadCPUList(filepath.Join(paths.SysDevicesSystemNode, entry.Name(), "cpulist"))
+		if err != nil {
+			log.Warn(ctx, "failed to read the CPUs of NUMA node %d: %s", node, err)
+			continue
+		}
+		for _, cpu := range cpus {
+			nodeOf[cpu] = node
+		}
+	}
+	return nodeOf
 }

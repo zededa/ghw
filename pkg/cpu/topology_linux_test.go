@@ -7,11 +7,15 @@
 package cpu_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
+	"sort"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/zededa/ghw/internal/config"
@@ -289,4 +293,298 @@ func unpackSnapshot(t *testing.T, name string) string {
 		t.Fatal(err)
 	}
 	return root
+}
+
+// twoSocketTree is 2 packages x 2 cores x 2 threads, one NUMA node per
+// package, with frequencies on CPU 0 only.
+func twoSocketTree() sysfsfixture.Tree {
+	var cpus []sysfsfixture.CPU
+	for id := 0; id < 8; id++ {
+		pkg, core := id/4, (id%4)/2
+		first := pkg*4 + core*2
+		c := sysfsfixture.CPU{
+			ID:       id,
+			Package:  strconv.Itoa(pkg),
+			Core:     strconv.Itoa(core),
+			Siblings: strconv.Itoa(first) + "-" + strconv.Itoa(first+1),
+		}
+		if id == 0 {
+			c.BaseKHz, c.MaxKHz = "2100000", "3500000"
+		}
+		cpus = append(cpus, c)
+	}
+	return sysfsfixture.Tree{CPUs: cpus, Nodes: map[int]string{0: "0-3", 1: "4-7"}}
+}
+
+func logicalProcessors(t *testing.T, tree sysfsfixture.Tree) *cpu.Info {
+	t.Helper()
+	info, err := cpu.New(config.WithChroot(sysfsfixture.Write(t, tree)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return info
+}
+
+func TestLogicalProcessors(t *testing.T) {
+	info := logicalProcessors(t, twoSocketTree())
+	var want []*cpu.LogicalProcessor
+	for id := 0; id < 8; id++ {
+		lp := &cpu.LogicalProcessor{ID: id, ProcessorID: id / 4, CoreID: (id % 4) / 2, NodeID: id / 4}
+		if id == 0 {
+			lp.BaseFrequencyKHz, lp.MaxFrequencyKHz = 2100000, 3500000
+		}
+		want = append(want, lp)
+	}
+	if !reflect.DeepEqual(info.LogicalProcessors, want) {
+		t.Errorf("LogicalProcessors =\n%v\nwant\n%v", info.LogicalProcessors, want)
+	}
+	if info.OfflineLogicalProcessors != nil {
+		t.Errorf("OfflineLogicalProcessors = %v, want none", info.OfflineLogicalProcessors)
+	}
+}
+
+// A kernel without NUMA has no node directory: every CPU is on node 0.
+func TestLogicalProcessorsNoNUMA(t *testing.T) {
+	tree := twoSocketTree()
+	tree.Nodes = nil
+	for _, lp := range logicalProcessors(t, tree).LogicalProcessors {
+		if lp.NodeID != 0 {
+			t.Errorf("CPU %d NodeID = %d, want 0", lp.ID, lp.NodeID)
+		}
+	}
+}
+
+// A CPU no node lists is on an unknown node, not on node 0.
+func TestLogicalProcessorsNUMAHole(t *testing.T) {
+	tree := twoSocketTree()
+	tree.Nodes = map[int]string{0: "0-3", 1: "4-6"}
+	for _, lp := range logicalProcessors(t, tree).LogicalProcessors {
+		want := lp.ID / 4
+		if lp.ID == 7 {
+			want = -1
+		}
+		if lp.NodeID != want {
+			t.Errorf("CPU %d NodeID = %d, want %d", lp.ID, lp.NodeID, want)
+		}
+	}
+}
+
+// A CPU whose topology cannot be read has unknown package and core.
+func TestLogicalProcessorsUnreadableTopology(t *testing.T) {
+	tree := twoSocketTree()
+	tree.CPUs[2].Package, tree.CPUs[2].Core, tree.CPUs[2].Siblings = "", "", ""
+	for _, lp := range logicalProcessors(t, tree).LogicalProcessors {
+		wantPkg, wantCore := lp.ID/4, (lp.ID%4)/2
+		if lp.ID == 2 {
+			wantPkg, wantCore = -1, -1
+		}
+		if lp.ProcessorID != wantPkg || lp.CoreID != wantCore {
+			t.Errorf("CPU %d = package %d core %d, want package %d core %d",
+				lp.ID, lp.ProcessorID, lp.CoreID, wantPkg, wantCore)
+		}
+	}
+}
+
+// physical_package_id -1 is the kernel saying there is no package
+// information: one package, 0.
+func TestPackageIDMinusOne(t *testing.T) {
+	tree := twoSocketTree()
+	for i := range tree.CPUs {
+		tree.CPUs[i].Package = "-1"
+	}
+	tree.CPUs = tree.CPUs[:4]
+	info := logicalProcessors(t, tree)
+	for _, lp := range info.LogicalProcessors {
+		if lp.ProcessorID != 0 {
+			t.Errorf("CPU %d ProcessorID = %d, want 0", lp.ID, lp.ProcessorID)
+		}
+	}
+	if len(info.Processors) != 1 || info.Processors[0].ID != 0 {
+		t.Errorf("Processors = %v, want one with ID 0", info.Processors)
+	}
+}
+
+// A device-tree board with no package information and core_id repeating per
+// cluster is still renumbered: its one package, 0, is clustered.
+func TestPackageIDMinusOneClusters(t *testing.T) {
+	var cpus []sysfsfixture.CPU
+	for id := 0; id < 8; id++ {
+		cpus = append(cpus, sysfsfixture.CPU{
+			ID: id, Package: "-1", Core: strconv.Itoa(id % 4), Siblings: strconv.Itoa(id),
+		})
+	}
+	info := logicalProcessors(t, sysfsfixture.Tree{CPUs: cpus})
+	want := []string{"0:[0]", "1:[1]", "2:[2]", "3:[3]", "4:[4]", "5:[5]", "6:[6]", "7:[7]"}
+	if len(info.Processors) != 1 || info.Processors[0].ID != 0 {
+		t.Fatalf("Processors = %v, want one with ID 0", info.Processors)
+	}
+	if got := coreList(info.Processors[0].Cores); !reflect.DeepEqual(got, want) {
+		t.Errorf("cores = %v, want %v", got, want)
+	}
+}
+
+func TestOfflineLogicalProcessors(t *testing.T) {
+	tree := twoSocketTree()
+	tree.CPUs = tree.CPUs[:4]
+	tree.CPUs[2].Offline, tree.CPUs[3].Offline = true, true
+	info := logicalProcessors(t, tree)
+	if want := []int{2, 3}; !reflect.DeepEqual(info.OfflineLogicalProcessors, want) {
+		t.Errorf("OfflineLogicalProcessors = %v, want %v", info.OfflineLogicalProcessors, want)
+	}
+	var ids []int
+	for _, lp := range info.LogicalProcessors {
+		ids = append(ids, lp.ID)
+	}
+	if want := []int{0, 1}; !reflect.DeepEqual(ids, want) {
+		t.Errorf("LogicalProcessors = %v, want %v", ids, want)
+	}
+}
+
+func TestInfoCaches(t *testing.T) {
+	tree := twoSocketTree()
+	for i := range tree.CPUs {
+		tree.CPUs[i].Caches = []sysfsfixture.Cache{
+			{Index: 3, Level: "3", Type: "Unified", ID: strconv.Itoa(i / 4), Size: "16384K"},
+		}
+	}
+	info := logicalProcessors(t, tree)
+	if len(info.Caches) != 2 {
+		t.Fatalf("Caches = %v, want two L3 instances", info.Caches)
+	}
+	for p, c := range info.Caches {
+		want := []uint32{uint32(p * 4), uint32(p*4 + 1), uint32(p*4 + 2), uint32(p*4 + 3)}
+		if c.Level != 3 || c.ID != p || !reflect.DeepEqual(c.LogicalProcessors, want) {
+			t.Errorf("Caches[%d] = %+v, want L3 %d of %v", p, c, p, want)
+		}
+	}
+}
+
+// The new fields come in addition to the existing ones, which keep their
+// values.
+func TestInfoJSONKeepsOldFields(t *testing.T) {
+	info := logicalProcessors(t, twoSocketTree())
+	var got map[string]any
+	if err := json.Unmarshal([]byte(info.JSONString(false)), &got); err != nil {
+		t.Fatal(err)
+	}
+	fields, _ := got["cpu"].(map[string]any)
+	for key, want := range map[string]float64{"total_cores": 4, "total_hardware_threads": 8} {
+		if fields[key] != want {
+			t.Errorf("%s = %v, want %v", key, fields[key], want)
+		}
+	}
+	for _, key := range []string{"processors", "logical_processors"} {
+		if _, ok := fields[key]; !ok {
+			t.Errorf("JSON has no %q: %v", key, fields)
+		}
+	}
+}
+
+// physical_package_id -1 means "no package information" only when every CPU
+// says so; next to CPUs with a real package it is unknown.
+func TestPackageIDMixedMinusOne(t *testing.T) {
+	tree := twoSocketTree()
+	tree.CPUs = tree.CPUs[:4]
+	tree.CPUs[0].Package, tree.CPUs[1].Package = "-1", "-1"
+	tree.CPUs[2].Package, tree.CPUs[3].Package = "1", "1"
+	for _, lp := range logicalProcessors(t, tree).LogicalProcessors {
+		want := 1
+		if lp.ID < 2 {
+			want = -1
+		}
+		if lp.ProcessorID != want {
+			t.Errorf("CPU %d ProcessorID = %d, want %d", lp.ID, lp.ProcessorID, want)
+		}
+	}
+}
+
+// On the x86 snapshots, Processors and their Cores are what they were before
+// this package learned about clusters: cores grouped by (package, core_id),
+// in the order the CPU directories are listed.
+func TestSnapshotProcessorsUnchanged(t *testing.T) {
+	dir, err := testdata.SnapshotsDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	names, err := filepath.Glob(filepath.Join(dir, "linux-amd64-*.tar.gz"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		t.Run(filepath.Base(name), func(t *testing.T) {
+			root := unpackSnapshot(t, filepath.Base(name))
+			cpuDir := filepath.Join(root, "sys", "devices", "system", "cpu")
+			want := legacyProcessors(t, cpuDir)
+			if want == nil {
+				t.Skip("no CPU topology in this snapshot")
+			}
+			info, err := cpu.New(config.WithChroot(root))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := map[int][][2]any{}
+			for _, p := range info.Processors {
+				for _, c := range p.Cores {
+					got[p.ID] = append(got[p.ID], [2]any{c.ID, c.LogicalProcessors})
+				}
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("processors =\n%v\nwant\n%v", got, want)
+			}
+		})
+	}
+}
+
+// legacyProcessors groups the online CPUs of a sysfs cpu directory by their
+// raw (physical_package_id, core_id), cores in directory order, as ghw did
+// before.
+func legacyProcessors(t *testing.T, cpuDir string) map[int][][2]any {
+	t.Helper()
+	entries, err := os.ReadDir(cpuDir)
+	if err != nil {
+		return nil
+	}
+	type core struct {
+		id  int
+		lps []int
+	}
+	cores := map[int][]*core{}
+	for _, e := range entries {
+		lp, err := strconv.Atoi(strings.TrimPrefix(e.Name(), "cpu"))
+		if err != nil || !strings.HasPrefix(e.Name(), "cpu") {
+			continue
+		}
+		if online, err := os.ReadFile(filepath.Join(cpuDir, e.Name(), "online")); err == nil && strings.TrimSpace(string(online)) == "0" {
+			continue
+		}
+		pkg, err1 := os.ReadFile(filepath.Join(cpuDir, e.Name(), "topology", "physical_package_id"))
+		id, err2 := os.ReadFile(filepath.Join(cpuDir, e.Name(), "topology", "core_id"))
+		if err1 != nil || err2 != nil {
+			return nil
+		}
+		p, _ := strconv.Atoi(strings.TrimSpace(string(pkg)))
+		c, _ := strconv.Atoi(strings.TrimSpace(string(id)))
+		var found *core
+		for _, existing := range cores[p] {
+			if existing.id == c {
+				found = existing
+			}
+		}
+		if found == nil {
+			found = &core{id: c}
+			cores[p] = append(cores[p], found)
+		}
+		found.lps = append(found.lps, lp)
+	}
+	if len(cores) == 0 {
+		return nil
+	}
+	out := map[int][][2]any{}
+	for p, list := range cores {
+		for _, c := range list {
+			sort.Ints(c.lps)
+			out[p] = append(out[p], [2]any{c.id, c.lps})
+		}
+	}
+	return out
 }
