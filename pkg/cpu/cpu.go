@@ -11,6 +11,7 @@ import (
 
 	"github.com/zededa/ghw/internal/config"
 	"github.com/zededa/ghw/pkg/marshal"
+	"github.com/zededa/ghw/pkg/memory"
 )
 
 // ProcessorCore describes a physical host processor core. A processor core is
@@ -135,6 +136,38 @@ type Info struct {
 	// Processors is a slice of Processor struct pointers, one for each
 	// physical processor package contained in the host
 	Processors []*Processor `json:"processors"`
+	// LogicalProcessors describes each online logical processor, ascending by
+	// ID.
+	LogicalProcessors []*LogicalProcessor `json:"logical_processors,omitempty"`
+	// OfflineLogicalProcessors are the IDs of the logical processors that are
+	// present but offline (for example SMT turned off), ascending.
+	OfflineLogicalProcessors []int `json:"offline_logical_processors,omitempty"`
+	// Caches lists every cache instance of the online logical processors,
+	// with the logical processors sharing it.
+	Caches []*memory.Cache `json:"caches,omitempty"`
+}
+
+// LogicalProcessor describes one online logical processor (hardware thread)
+// and where it sits in the host's topology. An ID that could not be read is -1,
+// and a frequency the kernel does not report is 0.
+type LogicalProcessor struct {
+	// ID is the logical processor ID the kernel and CPU affinities use.
+	ID int `json:"id"`
+	// ProcessorID is the physical package (socket) it belongs to, the ID of
+	// its Processor in Processors (unless /proc/cpuinfo does not describe the
+	// logical processor, which leaves it out of Processors).
+	ProcessorID int `json:"processor_id"`
+	// CoreID is the physical core it runs on, the ID of its ProcessorCore,
+	// unique within the package. Logical processors with the same known
+	// ProcessorID and CoreID are SMT siblings; two with an ID of -1 are not
+	// known to be.
+	CoreID int `json:"core_id"`
+	// NodeID is the NUMA node it belongs to; 0 on a kernel without NUMA.
+	NodeID int `json:"node_id"`
+	// BaseFrequencyKHz is its base (non-turbo) frequency.
+	BaseFrequencyKHz uint64 `json:"base_frequency_khz,omitempty"`
+	// MaxFrequencyKHz is its maximum (turbo) frequency.
+	MaxFrequencyKHz uint64 `json:"max_frequency_khz,omitempty"`
 }
 
 // New returns a pointer to an Info struct that contains information about the
