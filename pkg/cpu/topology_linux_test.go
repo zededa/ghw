@@ -21,6 +21,7 @@ import (
 	"github.com/zededa/ghw/internal/config"
 	"github.com/zededa/ghw/internal/sysfsfixture"
 	"github.com/zededa/ghw/pkg/cpu"
+	"github.com/zededa/ghw/pkg/memory"
 	"github.com/zededa/ghw/pkg/snapshot"
 	"github.com/zededa/ghw/testdata"
 )
@@ -250,6 +251,52 @@ func TestCoresForNodeTwoPackages(t *testing.T) {
 	}
 	if len(cores) != 2 {
 		t.Errorf("CoresForNode = %v, want 2 cores", cores)
+	}
+}
+
+// A 13th-gen Core i5-1335UE: two P-cores with two threads each (CPUs 0-3,
+// under the cpu_core PMU) and eight E-cores (CPUs 4-11, under cpu_atom), each
+// module of four E-cores sharing an L2. Turbo is off on that machine, so each
+// CPU's maximum frequency is its base frequency.
+func TestHybridPMUSnapshot(t *testing.T) {
+	info, err := cpu.New(config.WithChroot(unpackSnapshot(t, "linux-amd64-intel-i5-1335UE.tar.gz")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.TotalCores != 10 || info.TotalHardwareThreads != 12 {
+		t.Errorf("TotalCores, TotalHardwareThreads = %d, %d; want 10, 12",
+			info.TotalCores, info.TotalHardwareThreads)
+	}
+	var lps []string
+	for _, lp := range info.LogicalProcessors {
+		lps = append(lps, fmt.Sprintf("%d:%d:%s:%d", lp.ID, lp.CoreID, lp.CoreType, lp.MaxFrequencyKHz))
+	}
+	wantLPs := []string{
+		"0:0:performance:800000", "1:0:performance:800000",
+		"2:4:performance:800000", "3:4:performance:800000",
+		"4:8:efficiency:600000", "5:9:efficiency:600000",
+		"6:10:efficiency:600000", "7:11:efficiency:600000",
+		"8:12:efficiency:600000", "9:13:efficiency:600000",
+		"10:14:efficiency:600000", "11:15:efficiency:600000",
+	}
+	if !reflect.DeepEqual(lps, wantLPs) {
+		t.Errorf("logical processors (ID:core:type:max kHz) =\n%v\nwant\n%v", lps, wantLPs)
+	}
+	var caches []string
+	for _, c := range info.Caches {
+		if c.Level == 2 || c.Type == memory.CacheTypeData {
+			caches = append(caches, fmt.Sprintf("L%d %s %dK %v", c.Level, c.Type, c.SizeBytes/1024, c.LogicalProcessors))
+		}
+	}
+	wantCaches := []string{
+		"L1 Data 48K [0 1]", "L1 Data 48K [2 3]",
+		"L1 Data 32K [4]", "L1 Data 32K [5]", "L1 Data 32K [6]", "L1 Data 32K [7]",
+		"L1 Data 32K [8]", "L1 Data 32K [9]", "L1 Data 32K [10]", "L1 Data 32K [11]",
+		"L2 Unified 1280K [0 1]", "L2 Unified 1280K [2 3]",
+		"L2 Unified 2048K [4 5 6 7]", "L2 Unified 2048K [8 9 10 11]",
+	}
+	if !reflect.DeepEqual(caches, wantCaches) {
+		t.Errorf("L1d and L2 caches =\n%v\nwant\n%v", caches, wantCaches)
 	}
 }
 
