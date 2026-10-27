@@ -300,6 +300,54 @@ func TestHybridPMUSnapshot(t *testing.T) {
 	}
 }
 
+// An NVIDIA Jetson AGX Orin: its kernel reports each cluster of four cores as
+// a package, so core IDs repeat across packages but not within one and are
+// kept. Every CPU has capacity 1024: a homogeneous part. The kernel numbers no
+// cache, so cache instances are told apart by the CPUs sharing them. The CPU
+// model comes from the DeviceTree.
+func TestARMClusterPackagesSnapshot(t *testing.T) {
+	info, err := cpu.New(config.WithChroot(unpackSnapshot(t, "linux-arm64-nvidia-jetson-agx-orin.tar.gz")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(info.Processors) != 3 {
+		t.Fatalf("Processors = %v, want 3", info.Processors)
+	}
+	for _, p := range info.Processors {
+		if p.Model != "nvidia,tegra234" {
+			t.Errorf("package %d model = %q, want the SoC from the DeviceTree", p.ID, p.Model)
+		}
+		first := p.ID * 4
+		want := []string{
+			fmt.Sprintf("0:[%d]", first), fmt.Sprintf("1:[%d]", first+1),
+			fmt.Sprintf("2:[%d]", first+2), fmt.Sprintf("3:[%d]", first+3),
+		}
+		if got := coreList(p.Cores); !reflect.DeepEqual(got, want) {
+			t.Errorf("package %d cores = %v, want %v", p.ID, got, want)
+		}
+	}
+	for _, lp := range info.LogicalProcessors {
+		if lp.ProcessorID != lp.ID/4 || lp.CoreID != lp.ID%4 || lp.CoreType != cpu.CoreTypeUniform || lp.MaxFrequencyKHz != 2201600 {
+			t.Errorf("logical processor %+v", lp)
+		}
+	}
+	var l3 []string
+	for _, c := range info.Caches {
+		if c.ID != -1 {
+			t.Errorf("cache %+v has a kernel ID", c)
+		}
+		if c.Level == 3 {
+			l3 = append(l3, fmt.Sprintf("%dK %v", c.SizeBytes/1024, c.LogicalProcessors))
+		}
+	}
+	if want := []string{"2048K [0 1 2 3]", "2048K [4 5 6 7]", "2048K [8 9 10 11]"}; !reflect.DeepEqual(l3, want) {
+		t.Errorf("L3 caches = %v, want %v", l3, want)
+	}
+	if len(info.Caches) != 39 {
+		t.Errorf("%d caches, want 39: L1i, L1d and L2 per CPU and an L3 per cluster", len(info.Caches))
+	}
+}
+
 // On the i7-1270P the E-cores 8-11 share an L2 but are four cores of their own.
 func TestHybridSnapshotCores(t *testing.T) {
 	info, err := cpu.New(config.WithChroot(unpackSnapshot(t, "linux-amd64-intel-i7-1270P.tar.gz")))
